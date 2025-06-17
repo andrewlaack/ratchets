@@ -44,7 +44,6 @@ def get_file_path(file):
         root = find_project_root(file)
         return os.path.join(root, file)
 
-
 def get_python_files(directory):
     directory = Path(directory)
     python_files = set([path.absolute() for path in directory.rglob("*.py") if not path.is_symlink()])
@@ -76,27 +75,33 @@ def evaluate_tests(path, cmd_only, regex_only):
 
     files = filter_excluded_files(files, excluded_path)
 
+    test_issues = {}
+    custom_issues = {}
+
     if python_tests and not cmd_only:
-        issues = evaluate_python_tests(files, python_tests)
-        for test_name, matches in issues.items():
-            if matches:
-                print(f"\n{test_name} — matched {len(matches)} issue(s):")
-                for match in matches:
-                    print(f"  → {match['file']}:{match['line']}: {match['content']}")
-            else:
-                print(f"\n{test_name} — no issues found.")
+        test_issues = evaluate_python_tests(files, python_tests)
 
     if custom_tests and not regex_only:
-        issues = evaluate_command_tests(files, custom_tests)
-        if issues:
-            print("\ncustom-tests — matched issue(s):")
-            for file, lines in issues.items():
-                print(f"\n{file}:")
-                for line in lines:
-                    truncated = f"{line[0:80]}..." if len(line) > 80 else line
-                    print(f"  → {truncated}")
+        custom_issues = evaluate_command_tests(files, custom_tests)
+
+    return (test_issues, custom_issues)
+
+def print_issues(issues):
+    for test_name, matches in issues.items():
+        if matches:
+            print(f"\n{test_name} — matched {len(matches)} issue(s):")
+            for match in matches:
+                file = match['file']
+                line = match.get('line')
+                content = match['content']
+                truncated = content if len(content) <= 80 else content[:80] + "..."
+                if line is not None:
+                    print(f"  → {file}:{line}: {truncated}")
+                else:
+                    print(f"  → {file}: {truncated}")
         else:
-            print("\ncustom-tests — no issues found.")
+            print(f"\n{test_name} — no issues found.")
+
 
 def previous_results():
     path = get_ratchet_path()
@@ -134,21 +139,20 @@ def get_ratchet_path():
     return ratchet_file_path
 
 
-# add timeout.
 def evaluate_command_tests(files, test_str):
     assert len(test_str) != 0
+    assert len(files) != 0
 
-    issues = {}  # filename -> list of issues
+    results = {}
 
     for test_name, test_dict in test_str.items():
         command_template = test_dict["command"]
+        results[test_name] = []
 
         for file in files:
-            # Build the full command using pipe: echo file | <command>
             cmd_str = f"echo {file} | {command_template}"
 
             try:
-                # Run the command and capture output
                 result = subprocess.run(
                     cmd_str,
                     shell=True,
@@ -160,19 +164,52 @@ def evaluate_command_tests(files, test_str):
                 output = result.stdout.strip()
                 if output:
                     lines = output.splitlines()
-                    if file not in issues:
-                        issues[file] = []
-                    issues[file].extend(lines)
+                    for line in lines:
+                        results[test_name].append({
+                            "file": str(file),
+                            "line": None,
+                            "content": line.strip()
+                        })
 
             except subprocess.TimeoutExpired:
                 print(f"Timeout while running test '{test_name}' on {file}")
+    return results
 
-    return issues
+def results_to_json(results):
+    """
+    Convert the tuple returned by evaluate_tests (test_issues, custom_issues)
+    into a JSON string of the form:
+    {
+        "test_name_1": count1,
+        "test_name_2": count2,
+        ...
+    }
+    where count is the number of matches/issues for that test.
+    """
+    test_issues, custom_issues = results
+    counts = {}
 
+    # Count regex-based test issues
+    for name, matches in test_issues.items():
+        counts[name] = len(matches)
+
+    # Count command-based test issues, summing if a name overlaps
+    for name, matches in custom_issues.items():
+        counts[name] = counts.get(name, 0) + len(matches)
+
+    # Return a pretty-printed JSON string (sorted keys for consistency)
+    return json.dumps(counts, indent=2, sort_keys=True)
+
+def update_ratchets(test_path, cmd_mode, regex_mode):
+    results = evaluate_tests(test_path, cmd_mode, regex_mode)
+    results_json = results_to_json(results)
+    path = get_ratchet_path()
+    with open(path, 'w') as file:
+        file.writelines(results_json)
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Python ratchet testing")
-    parser.add_argument("-f", "--file",)
+    parser.add_argument("-f", "--file", help="Specify .toml file with tests")
 
     parser.add_argument(
         "-c", "--command-only",
@@ -186,15 +223,24 @@ if __name__ == "__main__":
         help="Run only regex-based tests"
     )
 
-
+    parser.add_argument(
+        "-u", "--update-ratchets",
+        action="store_true",
+        help="Update ratchets_values.json"
+    )
 
     args = parser.parse_args()
     file = args.file
 
     cmd_mode = args.command_only
     regex_mode = args.regex_only
-
+    update = args.update_ratchets
 
     test_path = get_file_path(file)
 
-    evaluate_tests(test_path, cmd_mode, regex_mode)
+    if update:
+        update_ratchets(test_path, cmd_mode, regex_mode)
+    else:
+        issues = evaluate_tests(test_path, cmd_mode, regex_mode)
+        for issue_type in issues:
+            print_issues(issue_type)

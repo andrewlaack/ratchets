@@ -53,4 +53,4 @@ if __name__ == "__main__":
     check_valid(python_tests)
     check_invalid(python_tests)
 
-    print(f"{test_path} is configured correctly!")
+    print(f"All expected regex invalid/valid samples are correct for:\n{test_path}")
