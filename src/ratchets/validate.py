@@ -33,7 +33,7 @@ def check_invalid(python_tests: Dict[str, Dict[str, Any]]) -> int:
 def validate(filename : Optional[str]) -> Optional[bool]:
     test_path: str = get_file_path(filename)
     config: Dict[str, Any] = toml.load(test_path)
-    python_tests: Optional[Dict[str, Dict[str, Any]]] = config.get("python-tests")
+    python_tests: Optional[Dict[str, Dict[str, Any]]] = config.get("ratchet", {}).get("regex")
 
     if python_tests is None:
         print("No python tests found, there is nothing to validate.")

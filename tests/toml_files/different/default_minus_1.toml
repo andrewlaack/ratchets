@@ -1,12 +1,12 @@
 # these will be ran in *parallel
 # (gthreads)
 
-[python-tests.lightning]
+[ratchet.regex.lightning]
 regex = "import pytorch_lightning|from pytorch_lightning"
 valid = ["import torch", "from my_project import Trainer"]
 invalid = ["import pytorch_lightning", "from pytorch_lightning import LightningModule"]
 
-[python-tests.tabs]
+[ratchet.regex.tabs]
 regex = "\\t"
 valid = [
   """def foo():

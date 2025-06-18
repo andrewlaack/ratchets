@@ -3,7 +3,7 @@
 
 
 
-[python-tests.typos]
+[ratchet.regex.typos]
 regex = "rachet|ratchet|rathet|rachet|ratchett"
 valid = [
     """
@@ -18,7 +18,7 @@ invalid = [
 
 
 
-[python-tests.exceptions]
+[ratchet.regex.exceptions]
 regex = "except:"
 valid = [
   """try:
@@ -42,12 +42,12 @@ except:
     recover()"""
 ]
 
-[python-tests.lightning]
+[ratchet.regex.lightning]
 regex = "import pytorch_lightning|from pytorch_lightning"
 valid = ["import torch", "from my_project import Trainer"]
 invalid = ["import pytorch_lightning", "from pytorch_lightning import LightningModule"]
 
-[python-tests.tabs]
+[ratchet.regex.tabs]
 regex = "\\t"
 valid = [
   """def foo():

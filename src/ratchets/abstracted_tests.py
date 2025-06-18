@@ -32,7 +32,7 @@ def get_config() -> Dict[str, Any]:
 def get_python_tests() -> Dict[str, Any]:
     """Extract and return the 'python-tests' section from config."""
     config = get_config()
-    return config.get("python-tests", {}) or {}
+    return config.get("ratchet.regex", {}) or {}
 
 
 def get_command_tests() -> Dict[str, Any]:
