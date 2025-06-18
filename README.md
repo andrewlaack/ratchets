@@ -77,7 +77,9 @@ This is an example of an `awk` command being used to print each line that has mo
 
 Once your rules are defined, you need to count the infractions. This is done by running.
 
-```python3 -m ratchets -u```
+```bash
+python3 -m ratchets -u
+```
 
 This creates a ratchet_values.json file in the root of your project. This will be checked into git and how the previous number of infractions is tracked to ensure it the never increase.
 
