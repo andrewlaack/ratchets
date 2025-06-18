@@ -14,8 +14,12 @@ license = { text = "GPL-3.0-only" }
 requires-python = ">=3.7"
 dependencies = [
   "pathspec==0.12.1",
-  "pytest==8.4.0",
   "toml==0.10.2"
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=7.0"
 ]
 
 [project.urls]
