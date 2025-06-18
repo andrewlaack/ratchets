@@ -138,4 +138,4 @@ To run the tests for the Ratchets source code locally you can clone this reposit
 git clone https://github.com/andrewlaack/ratchets/
 ```
 
-Then `cd` into ratchets and run `PyTest`.
+Then `cd` into ratchets and run `PyTest`. The tests use the installed version of Ratchets in your (virtual) environment so you must ensure changes to source files are applied to Ratchets there.
