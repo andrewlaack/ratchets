@@ -77,6 +77,12 @@ def test_ratchet_excluded_missing():
             assert False, "Unable to delete ratchet_values.json"
 
     test_path = run_tests.get_file_path(None)
+
+    try:
+        previous = run_tests.load_ratchet_results()
+    except Exception as e:
+        assert False, "If ratchet_values.json does not exist, we don't throw, assume all 0's"
+
     issues = run_tests.evaluate_tests(test_path, True, True)
 
     # writes back json file

@@ -93,9 +93,9 @@ def evaluate_tests(path: str, cmd_only: bool, regex_only: bool) -> Tuple[Dict[st
     test_issues: Dict[str, List[Dict[str, Any]]] = {}
     custom_issues: Dict[str, List[Dict[str, Any]]] = {}
     if python_tests and not cmd_only:
-        test_issues = evaluate_python_tests(files, python_tests)  # type: ignore
+        test_issues = evaluate_python_tests(files, python_tests) 
     if custom_tests and not regex_only:
-        custom_issues = evaluate_command_tests(files, custom_tests)  # type: ignore
+        custom_issues = evaluate_command_tests(files, custom_tests) 
     return test_issues, custom_issues
 
 
@@ -117,7 +117,12 @@ def print_issues(issues: Dict[str, List[Dict[str, Any]]]) -> None:
 
 
 def load_ratchet_results() -> Dict[str, Any]:
+
     path = get_ratchet_path()
+
+    if not os.path.isfile(path):
+        return {}
+
     with open(path, 'r') as file:
         data = json.load(file)
     return data
@@ -392,12 +397,6 @@ def cli():
         help="update ratchets_values.json"
     )
 
-    parser.add_argument(
-        "--validate",
-        action="store_true",
-        help="validate toml regex patterns"
-    )
-    
     args = parser.parse_args()
     file: Optional[str] = args.file
     cmd_mode: bool = args.command_only
@@ -406,8 +405,13 @@ def cli():
     compare_counts: bool = args.compare_counts
     blame: bool = args.blame
     verbose: bool = args.verbose
-    validate: bool = args.validate
     max_count: Optional[int] = args.max_count
+
+    excludes_path = get_excludes_path()
+
+    if not os.path.isfile(excludes_path):
+        with open(excludes_path, 'a'):
+            pass
 
     if not max_count:
         max_count = 10
