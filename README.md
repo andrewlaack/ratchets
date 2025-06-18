@@ -81,13 +81,13 @@ Once your rules are defined, you need to count the infractions. This is done by 
 python3 -m ratchets -u
 ```
 
-This creates a ratchet_values.json file in the root of your project. This will be checked into git and how the previous number of infractions is tracked to ensure it the never increase.
+This creates a ratchet_values.json file in the root of your project. This will be checked into git and is how the previous number of infractions is tracked to ensure infraction counts never increase.
 
 ## Excluding Files
 
 Once you run the update command, you should see a file in the root of your repository titled `ratchet_excluded.txt`. By default, this file is empty, but you can use standard .gitignore syntax to specify files that shouldn't be included in your tests. Additionally, all files specified by the gitignore of your project or that don't have the .py extension will not be included in the evaluation.
 
-## Setting Up Tests
+## Running as part of PyTest
 
 To set up tests, we provide an example file at [examples/example_test_ratchet.py](examples/example_test_ratchet.py), which defines tests to be ran with PyTest. In this file there are two uncommented methods that runs one test per rule in both sections (Python and command).
 
