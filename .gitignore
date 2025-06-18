@@ -195,4 +195,5 @@ cython_debug/
 ratchet_values.json
 ratchet_excluded.txt
 *.toml
-tests/
+notes/
+data/
