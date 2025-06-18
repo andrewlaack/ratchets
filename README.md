@@ -122,3 +122,13 @@ options:
 ```
 
 Of these, the -b option is particularly useful. When PyTests fail due to infringement counts increasing, it is necessary to identify where the new infringement occurred. By using the -b option you will, by default, see the 10 most recent changes that caused infringements for each rule.
+
+# Testing Ratchets Locally
+
+To run the tests for the Ratchets source code locally you can clone this repository with:
+
+```bash
+git clone https://github.com/andrewlaack/ratchets/
+```
+
+Then `cd` into ratchets and run `PyTest`.
