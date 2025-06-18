@@ -104,7 +104,7 @@ Running tests is as simple as running ```pytest``` from the root of the reposito
 At this point, your project has been set up, but as these tests are ran, and further infringements are found, there is a need to identify them. This, along with many other pieces of functionality can be viewed by running:
 
 ```
-python -m ratchets --help
+python3 -m ratchets --help
 ```
 
 Where you will see the following help message describing CLI usage for ratchets:
