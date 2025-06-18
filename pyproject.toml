@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ratchets"
-version = "0.1.0"
+version = "0.1.2"
 description = "Ratcheted testing in Python."
 authors = [
   { name = "Andrew Laack", email = "andrew@laack.co" }
@@ -13,8 +13,8 @@ readme = "README.md"
 license = { text = "GPL-3.0-only" }
 requires-python = ">=3.7"
 dependencies = [
-  "pathspec==0.12.1",
-  "toml==0.10.2"
+  "pathspec~=0.12.1",
+  "toml~=0.10.2"
 ]
 
 [project.optional-dependencies]
