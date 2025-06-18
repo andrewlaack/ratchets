@@ -75,7 +75,7 @@ This is an example of an `awk` command being used to print each line that has mo
 
 ## Updating Ratchets
 
-Once your rules are defined, you need to count the infractions. This is done by running ```bash python3 -m ratchets -u```. This creates a ratchet_values.json file in the root of your project. This will be checked into git and how the previous number of infractions is tracked to ensure it the never increase.
+Once your rules are defined, you need to count the infractions. This is done by running ```python3 -m ratchets -u```. This creates a ratchet_values.json file in the root of your project. This will be checked into git and how the previous number of infractions is tracked to ensure it the never increase.
 
 ## Excluding Files
 
@@ -104,7 +104,7 @@ python -m ratchets --help
 Where you will see the following help message describing CLI usage for ratchets:
 
 ```
-usage: __main__.py [-h] [-f FILE] [-c] [-r] [-v] [-b] [-m MAX_COUNT] [--compare-counts] [-u] [--validate]
+usage: __main__.py [-h] [-f FILE] [-c] [-r] [-v] [-b] [-m MAX_COUNT] [--compare-counts] [-u]
 
 Python ratchet testing
 
@@ -119,6 +119,7 @@ options:
                         maximum infractions to display per test (only applies with --blame; default is 10)
   --compare-counts      show only the differences in infraction counts between the current and last saved tests
   -u, --update-ratchets
+                        update ratchets_values.json
 ```
 
 Of these, the -b option is particularly useful. When PyTests fail due to infringement counts increasing, it is necessary to identify where the new infringement occurred. By using the -b option you will, by default, see the 10 most recent changes that caused infringements for each rule.
