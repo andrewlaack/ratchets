@@ -49,7 +49,7 @@ except:
 
 ```
 
-The valid and invalid entries are not necessary, but we provide a CLI utility, ran with ```python3 -m ratchets.validate``` to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing the tests.toml file in the current git repository or ```python3 -m ratchets.validate -f FILENAME``` if you need to test a specific toml file.
+The valid and invalid entries are not necessary, but we provide a CLI utility, ran with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing the tests.toml file in the current git repository or ```python3 -m ratchets.validate -f FILENAME``` if you need to test a specific toml file.
 
 
 ## custom-tests
