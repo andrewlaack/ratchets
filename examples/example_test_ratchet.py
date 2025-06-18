@@ -1,5 +1,5 @@
 import pytest
-from abstracted_tests import get_python_tests, get_command_tests, check_python_rule, check_command_rule
+from ratchets.abstracted_tests import get_python_tests, get_command_tests, check_python_rule, check_command_rule
 
 @pytest.mark.parametrize("test_name,rule", get_python_tests().items())
 def test_python_regex_rule(test_name: str, rule: dict) -> None:

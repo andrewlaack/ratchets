@@ -1,0 +1,69 @@
+# these will be ran in *parallel
+# (gthreads)
+
+
+
+[python-tests.typos]
+regex = "rachet|ratchet|rathet|rachet|ratchett"
+valid = [
+    """
+    ratchet
+    """
+]
+invalid = [
+  """
+    rachet
+  """
+]
+
+
+
+[python-tests.exceptions]
+regex = "except:"
+valid = [
+  """try:
+    x = 1
+except ValueError:
+    pass""",
+  """try:
+    do_something()
+except (IOError, ValueError):
+    handle()"""
+]
+invalid = [
+  """
+try:
+    pass
+except:
+    pass""",
+  """try:
+    dangerous()
+except:
+    recover()"""
+]
+
+[python-tests.lightning]
+regex = "import pytorch_lightning|from pytorch_lightning"
+valid = ["import torch", "from my_project import Trainer"]
+invalid = ["import pytorch_lightning", "from pytorch_lightning import LightningModule"]
+
+[python-tests.tabs]
+regex = "\\t"
+valid = [
+  """def foo():
+    return 42""",
+  "print('no tab here')"
+]
+invalid = [
+  """\tprint('starts with tab')""",
+  """def bar():
+\treturn True"""
+]
+
+# printed text is assumed to be failures
+# each evaluation **must** accept a file path as input
+# these can be tested by running echo FILEPATH | COMMAND
+# these will be ran in parallel
+
+[custom-tests.line_too_long]
+command = "xargs -n1 awk 'length($0) > 80'"

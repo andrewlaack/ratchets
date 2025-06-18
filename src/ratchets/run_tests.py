@@ -77,8 +77,11 @@ def filter_excluded_files(files: List[Path], excluded_path: str, ignore_path: st
 
 
 def evaluate_tests(path: str, cmd_only: bool, regex_only: bool) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
+
     assert os.path.isfile(path)
+
     config = toml.load(path)
+
     python_tests = config.get("python-tests")
     custom_tests = config.get("custom-tests")
     root = find_project_root()
@@ -388,6 +391,12 @@ def cli():
         action="store_true",
         help="update ratchets_values.json"
     )
+
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="validate toml regex patterns"
+    )
     
     args = parser.parse_args()
     file: Optional[str] = args.file
@@ -397,6 +406,7 @@ def cli():
     compare_counts: bool = args.compare_counts
     blame: bool = args.blame
     verbose: bool = args.verbose
+    validate: bool = args.validate
     max_count: Optional[int] = args.max_count
 
     if not max_count:

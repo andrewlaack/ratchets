@@ -1,0 +1,23 @@
+[python-tests.exceptions]
+regex = "except:"
+invalid = [
+  """try:
+    x = 1
+except ValueError:
+    pass""",
+  """try:
+    do_something()
+except (IOError, ValueError):
+    handle()"""
+]
+valid = [
+  """
+try:
+    pass
+except:
+    pass""",
+  """try:
+    dangerous()
+except:
+    recover()"""
+]

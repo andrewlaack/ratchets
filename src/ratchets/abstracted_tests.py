@@ -87,7 +87,10 @@ def get_command_test_matches(test_name: str, test_dict: Dict[str, Any]) -> List[
 
 
 def check_python_rule(test_name: str, rule: Dict[str, Any]) -> None:
-    """Assert that current regex violations do not exceed baseline."""
+    
+    assert (test_name is not None)
+    assert (rule is not None)
+
     matches = get_python_test_matches(test_name, rule)
     current_count = len(matches)
     baseline_counts = get_baseline_counts()
@@ -102,7 +105,10 @@ def check_python_rule(test_name: str, rule: Dict[str, Any]) -> None:
 
 
 def check_command_rule(test_name: str, test_dict: Dict[str, Any]) -> None:
-    """Assert that current command violations do not exceed baseline."""
+    
+    assert (test_name is not None)
+    assert (test_dict is not None)
+
     matches = get_command_test_matches(test_name, test_dict)
     current_count = len(matches)
     baseline_counts = get_baseline_counts()

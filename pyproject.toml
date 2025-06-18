@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ratchets"
+version = "0.1.0"
+description = "Ratcheted testing in Python."
+authors = [
+  { name = "Andrew Laack", email = "andrew@laack.co" }
+]
+readme = "README.md"
+license = { text = "GPL-3.0-only" }
+requires-python = ">=3.7"
+dependencies = [
+  "pathspec==0.12.1",
+  "pytest==8.4.0",
+  "toml==0.10.2"
+]
+
+[project.urls]
+Homepage = "https://github.com/andrewlaack/ratchets"
+Repository = "https://github.com/andrewlaack/ratchets"

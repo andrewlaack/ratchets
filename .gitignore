@@ -194,6 +194,5 @@ cython_debug/
 .cursorindexingignore
 ratchet_values.json
 ratchet_excluded.txt
-*.toml
 notes/
 data/
