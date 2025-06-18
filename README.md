@@ -1,10 +1,10 @@
-# ratchets
+# Ratchets
 
 Tests that lazily enforce a requirement across the entire repo. 
 
 # What is it?
 
-ratchets is a lazy way to enforce code compliance on an ongoing basis. This is done by defining regular expressions or commands to run against all non-excluded python files in a given repository. Tests pass when the number of non-compliant instances of code decreases and fail when they increase. This ensures that subsequent code does not have bad patterns, while still allowing old code to coexist until it is phased out. 
+Ratchets is a lazy way to enforce code compliance on an ongoing basis. This is done by defining regular expressions or commands to run against all non-excluded python files in a given repository. Tests pass when the number of non-compliant instances of code decreases and fail when they increase. This ensures that subsequent code does not have bad patterns, while still allowing old code to coexist until it is phased out. 
 
 # Installation
 
