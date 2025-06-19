@@ -292,11 +292,12 @@ def print_issues_with_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dic
                     author = match.get("blame_author") or "Unknown"
                     ts = match.get("blame_time") or "Unknown"
 
+                    # True when regex test
                     if line_no is not None:
                         print(f"  -> {file_path}:{line_no}  by {author} at {ts}")
                         print(f"       {truncated}")
                     else:
-                        print(f"  -> {file_path}  by {author} at {ts}")
+                        print(f"  -> {file_path}  file last updated by {author} at {ts}")
                         print(f"       {truncated}")
             else:
                 print(f"\n{section_name} — {test_name}: no issues found.")
