@@ -460,6 +460,17 @@ def cli():
 
     test_path = get_file_path(file)
 
+    if not os.path.isfile(test_path):
+        Path(test_path).touch()
+        print(f"\nCreated {test_path}.")
+        print("Please add your regex and shell tests there.")
+        print("For formatting details see https://github.com/andrewlaack/ratchets\n")
+        exit()
+
+    if not os.path.getsize(test_path):
+        print("No tests defined...")
+        exit()
+
     if blame:
         issues = evaluate_tests(test_path, cmd_mode, regex_mode)
         print_issues_with_blames(issues, max_count)
