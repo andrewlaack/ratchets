@@ -9,7 +9,11 @@ def test_validate_regex():
     for filename in os.listdir(toml_file_directory_valid):
         full_path = os.path.abspath(os.path.join(toml_file_directory_valid, filename))
         if os.path.isfile(full_path):
-            assert validate.validate(full_path), f"{full_path}, was deemed to be invalid"
+            try:
+                # Throws if not valid
+                validate.validate(full_path)
+            except Exception as e:
+                raise Exception(f"{full_path}, was deemed to be invalid \n {e}")
 
     for filename in os.listdir(toml_file_directory_invalid):
         full_path = os.path.abspath(os.path.join(toml_file_directory_invalid, filename))
@@ -20,7 +24,7 @@ def test_validate_regex():
             except Exception:
                 pass
             else:
-                assert False, f"Expected validation to fail for {full_path}, but it passed"
+                raise Exception(f"Expected validation to fail for {full_path}, but it passed")
 
 if __name__ == "__main__":
     test_validate_regex()

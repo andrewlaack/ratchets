@@ -149,8 +149,10 @@ def load_ratchet_results() -> Dict[str, Any]:
 
 def evaluate_regex_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """Evaluate a list of regex tests in parallel with one thread per test."""
-    assert len(files) != 0, "No files were passed in to be evaluated."
-    assert len(test_str) != 0, "No regex tests were passed in to be evaluated."
+    if len(files) == 0:
+        raise Exception("No files were passed in to be evaluated.")
+    if len(test_str) == 0:
+        raise Exception("No regex tests were passed in to be evaluated.")
 
     results: Dict[str, List[Dict[str, Any]]] = {}
     threads = []
@@ -190,8 +192,10 @@ def get_ratchet_path() -> str:
 
 def evaluate_shell_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """Evaluate all shell tests in parallel across each file."""
-    assert len(test_str) != 0, "No shell tests passed to evaluation method."
-    assert len(files) != 0, "No files passed to evaluation method."
+    if len(test_str) == 0:
+        raise Exception("No shell tests passed to evaluation method.")
+    if len(files) == 0:
+        raise Exception("No files passed to evaluation method.")
 
     results: Dict[str, List[Dict[str, Any]]] = {test_name: [] for test_name in test_str}
     lock = threading.Lock()
@@ -218,7 +222,7 @@ def evaluate_shell_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]])
                             "content": line.strip()
                         })
         except subprocess.TimeoutExpired:
-            assert False, f"Timeout while running test '{test_name}' on {file_path}"
+            raise Exception(f"Timeout while running test '{test_name}' on {file_path}")
 
     threads = []
 
@@ -461,8 +465,8 @@ def cli():
     ]
 
     for ls in mutex_options:
-        assert ls.count(True) <= 1, "Mutually exclusive options selected."
-        
+        if not ls.count(True) <= 1:
+            raise Exception("Mutually exclusive options selected.")
 
     if not os.path.isfile(excludes_path):
         with open(excludes_path, 'a'):

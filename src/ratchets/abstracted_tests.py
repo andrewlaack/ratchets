@@ -92,7 +92,7 @@ def check_regex_rule(test_name: str, rule: Dict[str, Any]) -> None:
         details = "\n".join(
             f"{r.get('file')}:{r.get('line')} — {r.get('content')}" for r in matches
         )
-        raise AssertionError(
+        raise Exception(
             f"Regex violations for '{test_name}' increased: baseline={baseline_count}, current={current_count}\n" + details
         )
 
@@ -109,6 +109,6 @@ def check_shell_rule(test_name: str, test_dict: Dict[str, Any]) -> None:
         details = "\n".join(
             f"{r.get('file')} — {r.get('content')}" for r in matches
         )
-        raise AssertionError(
+        raise Exception(
             f"shell violations for '{test_name}' increased: baseline={baseline_count}, current={current_count}\n" + details
         )

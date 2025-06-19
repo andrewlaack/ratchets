@@ -18,7 +18,7 @@ def test_shell_rule(test_name: str, test_dict: dict) -> None:
 #     for test_name, rule in get_regex_tests().items():
 #         try:
 #             check_regex_rule(test_name, rule)
-#         except AssertionError as e:
+#         except Exception as e:
 #             errors.append(f"{test_name}: {e}")
 #         except Exception as e:
 #             errors.append(f"{test_name}: unexpected error: {e!r}")
@@ -31,7 +31,7 @@ def test_shell_rule(test_name: str, test_dict: dict) -> None:
 #     for test_name, test_dict in get_shell_tests().items():
 #         try:
 #             check_shell_rule(test_name, test_dict)
-#         except AssertionError as e:
+#         except Exception as e:
 #             errors.append(f"{test_name}: {e}")
 #         except Exception as e:
 #             errors.append(f"{test_name}: unexpected error: {e!r}")

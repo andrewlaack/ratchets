@@ -18,7 +18,7 @@ def check_valid(regex_tests: Dict[str, Dict[str, Any]]) -> None:
         for validation in regex_tests[test]["valid"]:
             for line in validation.splitlines():
                 if evaluate_single_regex(regex, line):
-                    raise AssertionError(f"Regex: {regex} matched {line}")
+                    raise Exception(f"Regex: {regex} matched {line}")
 
 def check_invalid(regex_tests: Dict[str, Dict[str, Any]]) -> int:
     """Given a dict of regex test and strings, returns if all of the regexps match all of their strings."""
@@ -30,7 +30,7 @@ def check_invalid(regex_tests: Dict[str, Dict[str, Any]]) -> int:
                 if evaluate_single_regex(regex, line):
                     found = True
             if not found:
-                raise AssertionError(f"Regex: {regex} not matched in {validation}")
+                raise Exception(f"Regex: {regex} not matched in {validation}")
     return 0
 
 def validate(filename : Optional[str]) -> Optional[bool]:
