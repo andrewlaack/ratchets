@@ -24,5 +24,5 @@ invalid = [
 # these can be tested by running echo FILEPATH | COMMAND
 # these will be ran in parallel
 
-[custom-tests.line_too_long]
+[ratchet.shell.line_too_long]
 command = "xargs -n1 awk 'length($0) > 80'"

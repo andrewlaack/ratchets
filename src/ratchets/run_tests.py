@@ -83,7 +83,7 @@ def evaluate_tests(path: str, cmd_only: bool, regex_only: bool) -> Tuple[Dict[st
     config = toml.load(path)
 
     python_tests = config.get("ratchet", {}).get("regex")
-    custom_tests = config.get("custom-tests")
+    custom_tests = config.get("ratchet", {}).get("shell")
     root = find_project_root()
     files = get_python_files(root)
     EXCLUDED_PATH = "ratchet_excluded.txt"
