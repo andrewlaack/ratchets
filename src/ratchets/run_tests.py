@@ -476,6 +476,10 @@ def cli():
     test_path = get_file_path(file)
 
     if not os.path.isfile(test_path):
+
+        if file is not None and len(file) != 0:
+            raise Exception("Specified .toml file not found")
+
         Path(test_path).touch()
         print(f"\nCreated {test_path}.")
         print("Please add your regex and shell tests there.")
