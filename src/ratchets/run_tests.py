@@ -67,8 +67,13 @@ def get_file_path(file: Optional[str]) -> str:
         root = find_project_root(file)
         return str(os.path.join(root, file))
 
-def get_python_files(directory: Union[str, Path]) -> List[Path]:
+def get_python_files(directory: Union[str, Path], paths : Optional[List[str]]) -> List[Path]:
     """Return a list of paths for python files in the specified directory."""
+
+    if paths:
+        path_paths = [Path(x) for x in paths]
+        return path_paths
+
     directory = Path(directory)
     python_files = set([path.absolute() for path in directory.rglob("*.py") if not path.is_symlink()])
     return list(python_files)
@@ -88,7 +93,7 @@ def filter_excluded_files(files: List[Path], excluded_path: str, ignore_path: st
     files = [f for f in files if not spec.match_file(f)]
     return files
 
-def evaluate_tests(path: str, cmd_only: bool, regex_only: bool) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
+def evaluate_tests(path: str, cmd_only: bool, regex_only: bool, paths: Optional[List[str]]) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
     """Runs all requested tests based on the 'path' .toml file."""
     assert os.path.isfile(path)
 
@@ -98,7 +103,7 @@ def evaluate_tests(path: str, cmd_only: bool, regex_only: bool) -> Tuple[Dict[st
     shell_tests = config.get("ratchet", {}).get("shell")
 
     root = find_project_root()
-    files = get_python_files(root)
+    files = get_python_files(root, paths)
 
     excluded_path = os.path.join(root, EXCLUDED_FILENAME)
     ignore_path = os.path.join(root, IGNORE_FILENAME)
@@ -242,9 +247,9 @@ def results_to_json(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, Li
 
     return json.dumps(counts, indent=2, sort_keys=True)
 
-def update_ratchets(test_path: str, cmd_mode: bool, regex_mode: bool) -> None:
+def update_ratchets(test_path: str, cmd_mode: bool, regex_mode: bool, paths : Optional[List[str]]) -> None:
     """Update the current ratchets based on the outcome of the tests defined in 'test_path'."""
-    results = evaluate_tests(test_path, cmd_mode, regex_mode)
+    results = evaluate_tests(test_path, cmd_mode,  regex_mode, paths)
     results_json = results_to_json(results)
     path = get_ratchet_path()
     with open(path, 'w') as file:
@@ -382,10 +387,19 @@ def cli():
     """Primary entry point for CLI usage, providing parsing and function calls."""
     parser = argparse.ArgumentParser(description="Python ratchet testing")
 
+
     parser.add_argument(
         "-f",
         "--file",
         help="specify .toml file with tests"
+    )
+
+
+    parser.add_argument(
+        "-p",
+        "--path",
+        nargs="+",
+        help="specify file path(s) to run against"
     )
     
     parser.add_argument(
@@ -439,6 +453,7 @@ def cli():
     blame: bool = args.blame
     verbose: bool = args.verbose
     max_count: Optional[int] = args.max_count
+    paths: List[str] = args.path
 
     excludes_path = get_excludes_path()
 
@@ -472,21 +487,21 @@ def cli():
         exit()
 
     if blame:
-        issues = evaluate_tests(test_path, cmd_mode, regex_mode)
+        issues = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
         print_issues_with_blames(issues, max_count)
     elif compare_counts:
-        issues = evaluate_tests(test_path, cmd_mode, regex_mode)
+        issues = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
         current_json = json.loads(results_to_json(issues))
         previous_json = load_ratchet_results()
         print_diff(current_json, previous_json)
     elif update:
-        update_ratchets(test_path, cmd_mode, regex_mode)
+        update_ratchets(test_path, cmd_mode, regex_mode, paths)
     elif verbose:
-        issues = evaluate_tests(test_path, cmd_mode, regex_mode)
+        issues = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
         for issue_type in issues:
             print_issues(issue_type)
     else:
-        issues = evaluate_tests(test_path, cmd_mode, regex_mode)
+        issues = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
         current_json = json.loads(results_to_json(issues))
         print("Current " + str(current_json))
         previous_json = load_ratchet_results()
