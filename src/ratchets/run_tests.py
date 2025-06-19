@@ -10,10 +10,15 @@ import re
 import subprocess
 from typing import Optional, List, Dict, Tuple, Union, Any
 
+EXCLUDED_FILENAME = "ratchet_excluded.txt"
+IGNORE_FILENAME = ".gitignore"
+RATCHET_FILENAME = "ratchet_values.json"
 
 def print_diff(current_json: Dict[str, int], previous_json: Dict[str, int]) -> None:
+    """Print formatted json and differences."""
     all_keys = set(current_json.keys()) | set(previous_json.keys())
     diff_count = 0
+
     for key in sorted(all_keys):
         current_value = current_json.get(key, 0)
         previous_value = previous_json.get(key, 0)
@@ -21,17 +26,21 @@ def print_diff(current_json: Dict[str, int], previous_json: Dict[str, int]) -> N
             diff_count += 1
             diff = current_value - previous_value
             sign = "+" if diff > 0 else "-"
-            print(f"  {key}: {previous_value} → {current_value} ({sign}{abs(diff)})")
+            print(f"  {key}: {previous_value} -> {current_value} ({sign}{abs(diff)})")
+
     if diff_count == 0:
         print("There are no differences.")
 
-
 def find_project_root(start_path: Optional[str] = None, markers: Optional[List[str]] = None) -> str:
+    """Return the root of the current project starting from start_path or cwd."""
     if start_path is None:
         start_path = os.getcwd()
+
     if markers is None:
         markers = ['.git', 'pyproject.toml', 'setup.py', 'tests.toml']
+
     current = os.path.abspath(start_path)
+
     while True:
         for marker in markers:
             if os.path.exists(os.path.join(current, marker)):
@@ -41,14 +50,14 @@ def find_project_root(start_path: Optional[str] = None, markers: Optional[List[s
             raise FileNotFoundError("Project root not found.")
         current = parent
 
-
 def get_excludes_path() -> str:
+    """Get the path for the 'ratchet_excluded.txt' file."""
     DEFAULT_FILENAME = "ratchet_excluded.txt"
     root = find_project_root(None)
     return os.path.join(root, DEFAULT_FILENAME)
 
-
 def get_file_path(file: Optional[str]) -> str:
+    """Get the path, as a string, for the 'tests.toml' file or return a file path with a matching name to 'file'."""
     DEFAULT_FILENAME = "tests.toml"
     if not file:
         file = DEFAULT_FILENAME
@@ -56,51 +65,56 @@ def get_file_path(file: Optional[str]) -> str:
         return file
     else:
         root = find_project_root(file)
-        return os.path.join(root, file)
-
+        return str(os.path.join(root, file))
 
 def get_python_files(directory: Union[str, Path]) -> List[Path]:
+    """Return a list of paths for python files in the specified directory."""
     directory = Path(directory)
     python_files = set([path.absolute() for path in directory.rglob("*.py") if not path.is_symlink()])
     return list(python_files)
 
-
 def filter_excluded_files(files: List[Path], excluded_path: str, ignore_path: str) -> List[Path]:
-    with open(excluded_path, 'r') as f:
-        patterns = f.read().splitlines()
+    """Returns a new list of file paths that consists of all 'files' paths not excluded in the 'excluded_path' or 'ignore_path'."""
+    patterns = []
+    if os.path.isfile(excluded_path):
+        with open(excluded_path, 'r') as f:
+            patterns += f.read().splitlines()
+
     if os.path.isfile(ignore_path):
         with open(ignore_path, 'r') as f:
             patterns += f.read().splitlines()
+
     spec = pathspec.PathSpec.from_lines('gitwildmatch', patterns)
     files = [f for f in files if not spec.match_file(f)]
     return files
 
-
 def evaluate_tests(path: str, cmd_only: bool, regex_only: bool) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
-
+    """Runs all requested tests based on the 'path' .toml file."""
     assert os.path.isfile(path)
 
     config = toml.load(path)
 
-    python_tests = config.get("ratchet", {}).get("regex")
+    regex_tests = config.get("ratchet", {}).get("regex")
     shell_tests = config.get("ratchet", {}).get("shell")
+
     root = find_project_root()
     files = get_python_files(root)
-    EXCLUDED_PATH = "ratchet_excluded.txt"
-    excluded_path = os.path.join(root, EXCLUDED_PATH)
-    ignore_path = os.path.join(root, ".gitignore")
+
+    excluded_path = os.path.join(root, EXCLUDED_FILENAME)
+    ignore_path = os.path.join(root, IGNORE_FILENAME)
+
     files = filter_excluded_files(files, excluded_path, ignore_path)
-    test_issues: Dict[str, List[Dict[str, Any]]] = {}
+    regex_issues: Dict[str, List[Dict[str, Any]]] = {}
     shell_issues: Dict[str, List[Dict[str, Any]]] = {}
 
-    if python_tests and not cmd_only:
-        test_issues = evaluate_python_tests(files, python_tests) 
+    if regex_tests and not cmd_only:
+        regex_issues = evaluate_regex_tests(files, regex_tests) 
     if shell_tests and not regex_only:
         shell_issues = evaluate_shell_tests(files, shell_tests) 
-    return test_issues, shell_issues
-
+    return regex_issues, shell_issues
 
 def print_issues(issues: Dict[str, List[Dict[str, Any]]]) -> None:
+    """Print the 'issues' dict in a human readable way."""
     for test_name, matches in issues.items():
         if matches:
             print(f"\n{test_name} — matched {len(matches)} issue(s):")
@@ -110,15 +124,14 @@ def print_issues(issues: Dict[str, List[Dict[str, Any]]]) -> None:
                 content = match['content']
                 truncated = content if len(content) <= 80 else content[:80] + "..."
                 if line is not None:
-                    print(f"  → {file_path}:{line}: {truncated}")
+                    print(f"  -> {file_path}:{line}: {truncated}")
                 else:
-                    print(f"  → {file_path}: {truncated}")
+                    print(f"  -> {file_path}: {truncated}")
         else:
             print(f"\n{test_name} — no issues found.")
 
-
 def load_ratchet_results() -> Dict[str, Any]:
-
+    """Load and return current ratchet values.."""
     path = get_ratchet_path()
 
     if not os.path.isfile(path):
@@ -126,12 +139,13 @@ def load_ratchet_results() -> Dict[str, Any]:
 
     with open(path, 'r') as file:
         data = json.load(file)
-    return data
 
+    return dict(data)
 
-def evaluate_python_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-    assert len(files) != 0
-    assert len(test_str) != 0
+def evaluate_regex_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """Evaluate a list of regex tests in parallel with one thread per test."""
+    assert len(files) != 0, "No files were passed in to be evaluated."
+    assert len(test_str) != 0, "No regex tests were passed in to be evaluated."
 
     results: Dict[str, List[Dict[str, Any]]] = {}
     threads = []
@@ -163,22 +177,22 @@ def evaluate_python_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]]
 
     return results
 
-
 def get_ratchet_path() -> str:
+    """Get the path for the ratchet values file on disk."""
     root = find_project_root()
-    RATCHET_NAME = "ratchet_values.json"
-    ratchet_file_path = os.path.join(root, RATCHET_NAME)
+    ratchet_file_path = os.path.join(root, RATCHET_FILENAME)
     return ratchet_file_path
 
-
 def evaluate_shell_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-    assert len(test_str) != 0
-    assert len(files) != 0
+    """Evaluate all shell tests in parallel across each file."""
+    assert len(test_str) != 0, "No shell tests passed to evaluation method."
+    assert len(files) != 0, "No files passed to evaluation method."
 
     results: Dict[str, List[Dict[str, Any]]] = {test_name: [] for test_name in test_str}
     lock = threading.Lock()
 
     def worker(test_name: str, shell_template: str, file_path: str):
+        """Evaluate an individual shell test for a given file."""
         cmd_str = f"echo {file_path} | {shell_template}"
         try:
             result = subprocess.run(
@@ -199,7 +213,7 @@ def evaluate_shell_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]])
                             "content": line.strip()
                         })
         except subprocess.TimeoutExpired:
-            print(f"Timeout while running test '{test_name}' on {file_path}")
+            assert False, f"Timeout while running test '{test_name}' on {file_path}"
 
     threads = []
 
@@ -215,29 +229,33 @@ def evaluate_shell_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]])
 
     return results
 
-
 def results_to_json(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]) -> str:
+    """Convert test results to a standard JSON formatted string."""
     test_issues, shell_issues = results
     counts: Dict[str, int] = {}
+
     for name, matches in test_issues.items():
         counts[name] = len(matches)
+
     for name, matches in shell_issues.items():
         counts[name] = counts.get(name, 0) + len(matches)
+
     return json.dumps(counts, indent=2, sort_keys=True)
 
-
 def update_ratchets(test_path: str, cmd_mode: bool, regex_mode: bool) -> None:
+    """Update the current ratchets based on the outcome of the tests defined in 'test_path'."""
     results = evaluate_tests(test_path, cmd_mode, regex_mode)
     results_json = results_to_json(results)
     path = get_ratchet_path()
     with open(path, 'w') as file:
         file.writelines(results_json)
 
-
 def print_issues_with_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]], max_count: int) -> None:
+    """For the results in 'results', get blame results for each result and then print the results in a human readable format."""
     enriched_test_issues, enriched_shell_issues = add_blames(results)
 
     def _parse_time(ts: Optional[str]) -> datetime:
+        """Internal method used to convert formatted strings to datetimes."""
         if not ts:
             return datetime.max
         try:
@@ -246,44 +264,52 @@ def print_issues_with_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dic
             return datetime.max
 
     def _print_section(section_name: str, issues_dict: Dict[str, List[Dict[str, Any]]]) -> None:
+        """Internal method used to print the results from an individual test."""
         for test_name, matches in issues_dict.items():
             if matches:
-                sorted_matches = sorted(matches, key=lambda m: _parse_time(m.get("blame_time")))  # type: ignore
-                print("\n" + "-" * 40)
+                sorted_matches = sorted(matches, key=lambda m: _parse_time(m.get("blame_time")))
+                print()
                 print(f"{section_name} — {test_name} ({len(sorted_matches)} issue{'s' if len(sorted_matches) != 1 else ''}):")
-                print("-" * 40)
+                print()
                 count = 0
+
                 for match in sorted_matches:
                     count += 1
+
                     if count > max_count:
                         break
+                    
                     file_path = match.get("file", "<unknown>")
                     line_no = match.get("line")
                     content = match.get("content", "").strip()
                     truncated = content if len(content) <= 80 else content[:80] + "..."
                     author = match.get("blame_author") or "Unknown"
                     ts = match.get("blame_time") or "Unknown"
+
                     if line_no is not None:
-                        print(f"  → {file_path}:{line_no}  by {author} at {ts}")
+                        print(f"  -> {file_path}:{line_no}  by {author} at {ts}")
                         print(f"       {truncated}")
                     else:
-                        print(f"  → {file_path}  by {author} at {ts}")
+                        print(f"  -> {file_path}  by {author} at {ts}")
                         print(f"       {truncated}")
             else:
                 print(f"\n{section_name} — {test_name}: no issues found.")
 
     _print_section("Regex Test", enriched_test_issues)
-    _print_section("shell Test", enriched_shell_issues)
+    _print_section("Shell Test", enriched_shell_issues)
 
 
 def add_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
+    """Add blame information to each result in the 'results' tuple."""
     test_issues, shell_issues = results
+
     try:
         repo_root: Optional[str] = find_project_root()
     except Exception:
         repo_root = None
 
     def get_blame_for_line(file_path: str, line_no: Optional[int]) -> Tuple[Optional[str], Optional[str]]:
+        """Internal method for getting the blame information of a specific LoC."""
         if repo_root is None:
             return None, None
         cmd = ["git", "blame", "-L", f"{line_no},{line_no}", "--porcelain", file_path]
@@ -291,8 +317,10 @@ def add_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Di
             res = subprocess.run(cmd, capture_output=True, text=True, cwd=repo_root, timeout=5)
             if res.returncode != 0:
                 return None, None
+
             author: Optional[str] = None
             author_time: Optional[str] = None
+
             for l in res.stdout.splitlines():
                 if l.startswith("author "):
                     author = l[len("author "):].strip()
@@ -309,6 +337,7 @@ def add_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Di
             return None, None
 
     def get_last_commit_for_file(file_path: str) -> Tuple[Optional[str], Optional[str]]:
+        """Internal method to get the most recent commit's information for a file."""
         if repo_root is None:
             return None, None
         cmd = ["git", "log", "-1", "--format=%an;%at", "--", file_path]
@@ -350,48 +379,51 @@ def add_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Di
 
 
 def cli():
+    """Primary entry point for CLI usage, providing parsing and function calls."""
     parser = argparse.ArgumentParser(description="Python ratchet testing")
 
-    # Input file
-    parser.add_argument("-f", "--file", help="specify .toml file with tests")
-
-    # Filtering modes
+    parser.add_argument(
+        "-f",
+        "--file",
+        help="specify .toml file with tests"
+    )
+    
     parser.add_argument(
         "-s", "--shell-only",
         action="store_true",
         help="run only shell-based tests"
     )
+
     parser.add_argument(
         "-r", "--regex-only",
         action="store_true",
         help="run only regex-based tests"
     )
 
-    # Output formatting
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="run verbose tests, printing each infringing line"
     )
 
-    # Blame and related
     parser.add_argument(
         "-b", "--blame",
         action="store_true",
         help="run an additional git-blame for each infraction, ordering results by timestamp"
     )
+
     parser.add_argument(
         "-m", "--max-count",
         type=int,
         help="maximum infractions to display per test (only applies with --blame; default is 10)"
     )
 
-    # Modes of operation
     parser.add_argument(
         "--compare-counts",
         action="store_true",
         help="show only the differences in infraction counts between the current and last saved tests"
     )
+
     parser.add_argument(
         "-u", "--update-ratchets",
         action="store_true",
@@ -410,22 +442,26 @@ def cli():
 
     excludes_path = get_excludes_path()
 
+    mutex_options = [
+        [cmd_mode, regex_mode],
+        [blame, verbose, update, compare_counts]
+    ]
+
+    for ls in mutex_options:
+        assert ls.count(True) <= 1, "Mutually exclusive options selected."
+        
+
     if not os.path.isfile(excludes_path):
         with open(excludes_path, 'a'):
             pass
 
     if not max_count:
         max_count = 10
-    test_path = get_file_path(file)
 
-    # Probably should enforce only
-    # one can be selected via an error on
-    # the CLI instead of functionally 
-    # defining a hierarchy.
+    test_path = get_file_path(file)
 
     if blame:
         issues = evaluate_tests(test_path, cmd_mode, regex_mode)
-        with_blames = add_blames(issues)
         print_issues_with_blames(issues, max_count)
     elif compare_counts:
         issues = evaluate_tests(test_path, cmd_mode, regex_mode)
@@ -448,4 +484,5 @@ def cli():
         print_diff(current_json, previous_json)
 
 if __name__ == "__main__":
+    """Entry point when the file is executed directly, envokes CLI method."""
     cli()

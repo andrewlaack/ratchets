@@ -6,7 +6,7 @@ from typing import Dict, Any
 import json
 
 # verify code still runs as expected even
-# if only cmd or only python sections are defined
+# if only shell or regex sections are defined
 
 # also, ensure sufficiently informative message is shown when
 # invalid toml is used.

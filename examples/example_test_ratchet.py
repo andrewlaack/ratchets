@@ -1,26 +1,26 @@
 import pytest
-from ratchets.abstracted_tests import get_python_tests, get_shell_tests, \
-    check_python_rule, check_shell_rule
+from ratchets.abstracted_tests import get_regex_tests, get_shell_tests, \
+    check_regex_rule, check_shell_rule
 
-@pytest.mark.parametrize("test_name,rule", get_python_tests().items())
-def test_python_regex_rule(test_name: str, rule: dict) -> None:
-    check_python_rule(test_name, rule)
+@pytest.mark.parametrize("test_name,rule", get_regex_tests().items())
+def test_regex_regex_rule(test_name: str, rule: dict) -> None:
+    check_regex_rule(test_name, rule)
 
 @pytest.mark.parametrize("test_name,test_dict", get_shell_tests().items())
 def test_shell_rule(test_name: str, test_dict: dict) -> None:
     check_shell_rule(test_name, test_dict)
 
-# def test_all_python_regex_rules():
+# def test_all_regex_rules():
 #     errors = []
-#     for test_name, rule in get_python_tests().items():
+#     for test_name, rule in get_regex_tests().items():
 #         try:
-#             check_python_rule(test_name, rule)
+#             check_regex_rule(test_name, rule)
 #         except AssertionError as e:
 #             errors.append(f"{test_name}: {e}")
 #         except Exception as e:
 #             errors.append(f"{test_name}: unexpected error: {e!r}")
 #     if errors:
-#         pytest.fail("Some python regex rules failed:\n" + "\n".join(errors))
+#         pytest.fail("Some regex rules failed:\n" + "\n".join(errors))
 # 
 # def test_all_shell_rules():
 #     errors = []
