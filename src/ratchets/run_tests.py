@@ -59,13 +59,11 @@ def get_excludes_path() -> str:
 def get_file_path(file: Optional[str]) -> str:
     """Get the path, as a string, for the 'tests.toml' file or return a file path with a matching name to 'file'."""
     DEFAULT_FILENAME = "tests.toml"
-    if not file:
+    if file is None or len(file) == 0:
         file = DEFAULT_FILENAME
-    if "/" in file:
-        return file
-    else:
         root = find_project_root(file)
         return str(os.path.join(root, file))
+    return file
 
 def get_python_files(directory: Union[str, Path], paths : Optional[List[str]]) -> List[Path]:
     """Return a list of paths for python files in the specified directory."""
