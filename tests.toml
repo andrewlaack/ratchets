@@ -49,4 +49,4 @@ invalid = [
 # these will be ran in parallel
 
 [ratchet.shell.line_too_long]
-command = "xargs -n1 awk 'length($0) > 80'"
+command = "xargs -n1 awk 'length($0) > 88'"

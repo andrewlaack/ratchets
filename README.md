@@ -78,11 +78,11 @@ The standard output of the command is assumed to describe infractions, and the n
 ```toml
 
 [ratchet.shell.line_too_long]
-command = "xargs -n1 awk 'length($0) > 80'"
+command = "xargs -n1 awk 'length($0) > 88'"
 
 ```
 
-This is an example of an `awk` command being used to print each line that has more than 80 characters. As these are printed, they are counted as infractions.
+This is an example of an `awk` command being used to print each line that has more than 88 characters (the default for [black](https://github.com/psf/black). As these are printed, they are counted as infractions.
 
 ## Updating Ratchets
 
