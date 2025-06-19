@@ -13,6 +13,7 @@ from typing import Optional, List, Dict, Tuple, Union, Any
 EXCLUDED_FILENAME = "ratchet_excluded.txt"
 IGNORE_FILENAME = ".gitignore"
 RATCHET_FILENAME = "ratchet_values.json"
+TEST_FILENAME = "tests.toml"
 
 def print_diff(current_json: Dict[str, int], previous_json: Dict[str, int]) -> None:
     """Print formatted json and differences."""
@@ -52,15 +53,13 @@ def find_project_root(start_path: Optional[str] = None, markers: Optional[List[s
 
 def get_excludes_path() -> str:
     """Get the path for the 'ratchet_excluded.txt' file."""
-    DEFAULT_FILENAME = "ratchet_excluded.txt"
     root = find_project_root(None)
-    return os.path.join(root, DEFAULT_FILENAME)
+    return os.path.join(root, EXCLUDED_FILENAME)
 
 def get_file_path(file: Optional[str]) -> str:
     """Get the path, as a string, for the 'tests.toml' file or return a file path with a matching name to 'file'."""
-    DEFAULT_FILENAME = "tests.toml"
     if file is None or len(file) == 0:
-        file = DEFAULT_FILENAME
+        file = TEST_FILENAME
         root = find_project_root(file)
         return str(os.path.join(root, file))
     return file
