@@ -389,9 +389,8 @@ def cli():
 
 
     parser.add_argument(
-        "-t",
-        "--toml-file",
-        help="specify a .toml file with tests"
+        "-t", "--toml-file",
+         help="specify a .toml file with tests"
     )
 
     parser.add_argument(
