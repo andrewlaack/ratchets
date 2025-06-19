@@ -83,7 +83,7 @@ def evaluate_tests(path: str, cmd_only: bool, regex_only: bool) -> Tuple[Dict[st
     config = toml.load(path)
 
     python_tests = config.get("ratchet", {}).get("regex")
-    custom_tests = config.get("ratchet", {}).get("shell")
+    shell_tests = config.get("ratchet", {}).get("shell")
     root = find_project_root()
     files = get_python_files(root)
     EXCLUDED_PATH = "ratchet_excluded.txt"
@@ -91,12 +91,13 @@ def evaluate_tests(path: str, cmd_only: bool, regex_only: bool) -> Tuple[Dict[st
     ignore_path = os.path.join(root, ".gitignore")
     files = filter_excluded_files(files, excluded_path, ignore_path)
     test_issues: Dict[str, List[Dict[str, Any]]] = {}
-    custom_issues: Dict[str, List[Dict[str, Any]]] = {}
+    shell_issues: Dict[str, List[Dict[str, Any]]] = {}
+
     if python_tests and not cmd_only:
         test_issues = evaluate_python_tests(files, python_tests) 
-    if custom_tests and not regex_only:
-        custom_issues = evaluate_command_tests(files, custom_tests) 
-    return test_issues, custom_issues
+    if shell_tests and not regex_only:
+        shell_issues = evaluate_shell_tests(files, shell_tests) 
+    return test_issues, shell_issues
 
 
 def print_issues(issues: Dict[str, List[Dict[str, Any]]]) -> None:
@@ -170,15 +171,15 @@ def get_ratchet_path() -> str:
     return ratchet_file_path
 
 
-def evaluate_command_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+def evaluate_shell_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     assert len(test_str) != 0
     assert len(files) != 0
 
     results: Dict[str, List[Dict[str, Any]]] = {test_name: [] for test_name in test_str}
     lock = threading.Lock()
 
-    def worker(test_name: str, command_template: str, file_path: str):
-        cmd_str = f"echo {file_path} | {command_template}"
+    def worker(test_name: str, shell_template: str, file_path: str):
+        cmd_str = f"echo {file_path} | {shell_template}"
         try:
             result = subprocess.run(
                 cmd_str,
@@ -203,9 +204,9 @@ def evaluate_command_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]
     threads = []
 
     for test_name, test_dict in test_str.items():
-        command_template = test_dict["command"]
+        shell_template = test_dict["command"]
         for file_path in files:
-            t = threading.Thread(target=worker, args=(test_name, command_template, file_path))
+            t = threading.Thread(target=worker, args=(test_name, shell_template, file_path))
             t.start()
             threads.append(t)
 
@@ -216,11 +217,11 @@ def evaluate_command_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]
 
 
 def results_to_json(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]) -> str:
-    test_issues, custom_issues = results
+    test_issues, shell_issues = results
     counts: Dict[str, int] = {}
     for name, matches in test_issues.items():
         counts[name] = len(matches)
-    for name, matches in custom_issues.items():
+    for name, matches in shell_issues.items():
         counts[name] = counts.get(name, 0) + len(matches)
     return json.dumps(counts, indent=2, sort_keys=True)
 
@@ -234,7 +235,7 @@ def update_ratchets(test_path: str, cmd_mode: bool, regex_mode: bool) -> None:
 
 
 def print_issues_with_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]], max_count: int) -> None:
-    enriched_test_issues, enriched_custom_issues = add_blames(results)
+    enriched_test_issues, enriched_shell_issues = add_blames(results)
 
     def _parse_time(ts: Optional[str]) -> datetime:
         if not ts:
@@ -272,11 +273,11 @@ def print_issues_with_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dic
                 print(f"\n{section_name} — {test_name}: no issues found.")
 
     _print_section("Regex Test", enriched_test_issues)
-    _print_section("Command Test", enriched_custom_issues)
+    _print_section("shell Test", enriched_shell_issues)
 
 
 def add_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
-    test_issues, custom_issues = results
+    test_issues, shell_issues = results
     try:
         repo_root: Optional[str] = find_project_root()
     except Exception:
@@ -329,7 +330,7 @@ def add_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Di
         except Exception:
             return None, None
 
-    for issues in (test_issues, custom_issues):
+    for issues in (test_issues, shell_issues):
         for test_name, matches in issues.items():
             for match in matches:
                 file_path = match.get("file")
@@ -343,7 +344,7 @@ def add_blames(results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Di
                 match["blame_author"] = author if author is not None else None
                 match["blame_time"] = author_time if author_time is not None else None
 
-    return test_issues, custom_issues
+    return test_issues, shell_issues
 
 
 
@@ -356,9 +357,9 @@ def cli():
 
     # Filtering modes
     parser.add_argument(
-        "-c", "--command-only",
+        "-s", "--shell-only",
         action="store_true",
-        help="run only custom command-based tests"
+        help="run only shell-based tests"
     )
     parser.add_argument(
         "-r", "--regex-only",
@@ -399,7 +400,7 @@ def cli():
 
     args = parser.parse_args()
     file: Optional[str] = args.file
-    cmd_mode: bool = args.command_only
+    cmd_mode: bool = args.shell_only
     regex_mode: bool = args.regex_only
     update: bool = args.update_ratchets
     compare_counts: bool = args.compare_counts

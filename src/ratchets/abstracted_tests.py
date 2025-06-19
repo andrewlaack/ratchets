@@ -6,7 +6,7 @@ from typing import Dict, Any, List
 
 from .run_tests import (
     evaluate_python_tests,
-    evaluate_command_tests,
+    evaluate_shell_tests,
     filter_excluded_files,
     find_project_root,
     get_python_files,
@@ -36,10 +36,10 @@ def get_python_tests() -> Dict[str, Any]:
     return python_tests or {}
 
 
-def get_command_tests() -> Dict[str, Any]:
+def get_shell_tests() -> Dict[str, Any]:
     """Extract and return the 'ratchet.shell' section from config."""
     config = get_config()
-    shell_tests = config.get("ratchet", {}).get("shell")
+    shell_tests = config.get("ratchet", {}).get("command")
     return shell_tests or {}
 
 
@@ -82,10 +82,10 @@ def get_python_test_matches(test_name: str, rule: Dict[str, Any]) -> List[Dict[s
     return results.get(test_name, [])
 
 
-def get_command_test_matches(test_name: str, test_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Run the custom command test for a single rule and return matches."""
+def get_shell_test_matches(test_name: str, test_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Run the shell test for a single rule and return matches."""
     files = get_filtered_files()
-    results: Dict[str, List[Dict[str, Any]]] = evaluate_command_tests(files, {test_name: test_dict})
+    results: Dict[str, List[Dict[str, Any]]] = evaluate_shell_tests(files, {test_name: test_dict})
     return results.get(test_name, [])
 
 
@@ -107,12 +107,12 @@ def check_python_rule(test_name: str, rule: Dict[str, Any]) -> None:
         )
 
 
-def check_command_rule(test_name: str, test_dict: Dict[str, Any]) -> None:
+def check_shell_rule(test_name: str, test_dict: Dict[str, Any]) -> None:
     
     assert (test_name is not None)
     assert (test_dict is not None)
 
-    matches = get_command_test_matches(test_name, test_dict)
+    matches = get_shell_test_matches(test_name, test_dict)
     current_count = len(matches)
     baseline_counts = get_baseline_counts()
     baseline_count = baseline_counts.get(test_name, 0)
@@ -121,5 +121,5 @@ def check_command_rule(test_name: str, test_dict: Dict[str, Any]) -> None:
             f"{r.get('file')} — {r.get('content')}" for r in matches
         )
         raise AssertionError(
-            f"Command violations for '{test_name}' increased: baseline={baseline_count}, current={current_count}\n" + details
+            f"shell violations for '{test_name}' increased: baseline={baseline_count}, current={current_count}\n" + details
         )

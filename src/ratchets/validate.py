@@ -6,9 +6,9 @@ from .run_tests import (
     get_file_path,
 )
 
-def evaluate_single_regex(regex: str, custom_str: str) -> Optional[re.Match[str]]:
+def evaluate_single_regex(regex: str, shell_str: str) -> Optional[re.Match[str]]:
     pattern = re.compile(regex)
-    return pattern.search(custom_str)
+    return pattern.search(shell_str)
 
 def check_valid(python_tests: Dict[str, Dict[str, Any]]) -> None:
     for test in python_tests:
