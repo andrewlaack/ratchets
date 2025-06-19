@@ -15,6 +15,7 @@ import json
 # this creates a ratchet_excluded.txt file,
 # creates the output json, and verifies there is a default tests.toml file
 
+
 def test_config():
     test_path = run_tests.get_file_path(None)
 
@@ -30,7 +31,9 @@ def test_config():
 
 def test_formatting():
     current_file_directory = os.path.dirname(os.path.abspath(__file__))
-    toml_file_directory = os.path.abspath(os.path.join(current_file_directory, "..", "toml_files"))
+    toml_file_directory = os.path.abspath(
+        os.path.join(current_file_directory, "..", "toml_files")
+    )
 
     for filename in os.listdir(toml_file_directory):
         if filename == "invalid.toml":
@@ -45,7 +48,7 @@ def test_formatting():
 
         else:
             full_path = os.path.abspath(os.path.join(toml_file_directory, filename))
-            
+
             # there is a directory in there
             if os.path.isfile(full_path):
                 run_tests.evaluate_tests(full_path, True, True, None)
@@ -62,15 +65,18 @@ def verify_updating():
     # to be either the same or lower.
 
     issues = run_tests.evaluate_tests(test_path, True, True, None)
-    current_json : Dict [str, Any] = json.loads(run_tests.results_to_json(issues))
-    previous_json : Dict[str, Any] = run_tests.load_ratchet_results()
+    current_json: Dict[str, Any] = json.loads(run_tests.results_to_json(issues))
+    previous_json: Dict[str, Any] = run_tests.load_ratchet_results()
 
     if current_json != previous_json:
-        raise Exception("JSON should be identical when running evals and updating ratchets.")
+        raise Exception(
+            "JSON should be identical when running evals and updating ratchets."
+        )
+
 
 # test how things behave when ratchet_values.json does not exist
 def test_ratchet_excluded_missing():
-    
+
     ratchet_path = abstracted_tests.get_ratchet_path()
 
     if os.path.isfile(ratchet_path):
@@ -84,7 +90,9 @@ def test_ratchet_excluded_missing():
     try:
         previous = run_tests.load_ratchet_results()
     except Exception:
-        raise Exception("If ratchet_values.json does not exist, we don't throw, assume all 0's")
+        raise Exception(
+            "If ratchet_values.json does not exist, we don't throw, assume all 0's"
+        )
 
     issues = run_tests.evaluate_tests(test_path, True, True, None)
 
@@ -93,16 +101,20 @@ def test_ratchet_excluded_missing():
 
     return
 
+
 # test when there are additional values,
 # less values, no values (in current).
 
+
 def test_ratchet_values_differ():
-    
+
     # ensure clean start
     test_config()
 
     current_file_directory = os.path.dirname(os.path.abspath(__file__))
-    toml_file_directory = os.path.abspath(os.path.join(current_file_directory, "..", "toml_files/different"))
+    toml_file_directory = os.path.abspath(
+        os.path.join(current_file_directory, "..", "toml_files/different")
+    )
 
     for filename in os.listdir(toml_file_directory):
         full_path = os.path.abspath(os.path.join(toml_file_directory, filename))
@@ -110,6 +122,7 @@ def test_ratchet_values_differ():
         full_path = os.path.abspath(os.path.join(toml_file_directory, filename))
 
     return
+
 
 if __name__ == "__main__":
     test_config()
