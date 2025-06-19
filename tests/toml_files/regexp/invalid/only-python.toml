@@ -1,4 +1,4 @@
-[python-tests.exceptions]
+[ratchet.regex.exceptions]
 regex = "except:"
 invalid = [
   """try:

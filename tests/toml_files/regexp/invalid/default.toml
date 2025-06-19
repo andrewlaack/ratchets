@@ -1,7 +1,7 @@
 # these will be ran in *parallel
 # (gthreads)
 
-[python-tests.exceptions]
+[ratchet.regex.exceptions]
 regex = "except:"
 invalid = [
   """try:
@@ -25,12 +25,12 @@ except:
     recover()"""
 ]
 
-[python-tests.lightning]
+[ratchet.regex.lightning]
 regex = "import pytorch_lightning|from pytorch_lightning"
 valid = ["import torch", "from my_project import Trainer"]
 invalid = ["import pytorch_lightning", "from pytorch_lightning import LightningModule"]
 
-[python-tests.tabs]
+[ratchet.regex.tabs]
 regex = "\\t"
 valid = [
   """def foo():
@@ -48,5 +48,5 @@ invalid = [
 # these can be tested by running echo FILEPATH | COMMAND
 # these will be ran in parallel
 
-[custom-tests.line_too_long]
+[ratchet.shell.line_too_long]
 command = "xargs -n1 awk 'length($0) > 80'"

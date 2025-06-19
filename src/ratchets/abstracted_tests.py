@@ -32,13 +32,16 @@ def get_config() -> Dict[str, Any]:
 def get_python_tests() -> Dict[str, Any]:
     """Extract and return the 'python-tests' section from config."""
     config = get_config()
-    return config.get("python-tests", {}) or {}
+    python_tests = config.get("ratchet", {}).get("regex")
+    return python_tests or {}
 
 
 def get_command_tests() -> Dict[str, Any]:
-    """Extract and return the 'custom-tests' section from config."""
+    """Extract and return the 'ratchet.shell' section from config."""
     config = get_config()
-    return config.get("custom-tests", {}) or {}
+    shell_tests = config.get("ratchet", {}).get("shell")
+    return shell_tests or {}
+
 
 
 def load_baseline_counts() -> Dict[str, int]:

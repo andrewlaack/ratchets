@@ -16,14 +16,14 @@ pip install ratchets
 
 You first need to create a tests.toml file at the root of your repository. See [tests.toml](tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
 
-## python-tests
+## ratchet.regex
 
 These are tests that check regular expressions on the basis of each line of each file being examined.
 
 **Example:**
 ```toml
 
-[python-tests.exceptions]
+[ratchet.regex.exceptions]
 regex = "except:"
 valid = [
   """try:
@@ -52,7 +52,7 @@ except:
 The valid and invalid entries are not necessary, but we provide a CLI utility, ran with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing the tests.toml file in the current git repository or ```python3 -m ratchets.validate -f FILENAME``` if you need to test a specific toml file.
 
 
-## custom-tests
+## ratchet.shell
 
 These are tests that run against each file where each evaluation is of the form:
 
@@ -66,7 +66,7 @@ It is assumed the standard output of the command describes each of the issues wh
 
 ```toml
 
-[custom-tests.line_too_long]
+[ratchet.shell.line_too_long]
 command = "xargs -n1 awk 'length($0) > 80'"
 
 ```
