@@ -200,6 +200,11 @@ def evaluate_shell_tests(files: List[Path], test_str: Dict[str, Dict[str, Any]])
     def worker(test_name: str, shell_template: str, file_path: str):
         """Evaluate an individual shell test for a given file."""
         cmd_str = f"echo {file_path} | {shell_template}"
+
+
+        # TODO:
+        # Add hashmap lookup for lines in file to blame w/ line number.
+
         try:
             result = subprocess.run(
                 cmd_str,
