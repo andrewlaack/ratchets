@@ -37,7 +37,7 @@ def get_python_tests() -> Dict[str, Any]:
 
 
 def get_command_tests() -> Dict[str, Any]:
-    """Extract and return the 'ratchets.shell' section from config."""
+    """Extract and return the 'ratchet.shell' section from config."""
     config = get_config()
     shell_tests = config.get("ratchet", {}).get("shell")
     return shell_tests or {}
