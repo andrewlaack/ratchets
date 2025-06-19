@@ -1,26 +1,37 @@
 # Ratchets
 
-Tests that lazily enforce a requirement across the entire repo. 
+Tests that lazily enforce a requirement across the entire repository.
 
 # What is it?
 
-Ratchets is a lazy way to enforce code compliance on an ongoing basis. This is done by defining regular expressions or commands to run against all non-excluded python files in a given repository. Tests pass when the number of non-compliant instances of code decreases and fail when they increase. This ensures that subsequent code does not have bad patterns, while still allowing old code to coexist until it is phased out. 
+Ratchets is a lazy way to enforce code compliance on an ongoing basis. This is done by defining regular expressions and shell commands to run against all non-excluded python files in a given repository. Tests pass when the number of non-compliant instances of code decreases and fail when they increase. This ensures future code does not have bad patterns, while still allowing old code to coexist until it is phased out. 
 
 # Installation
+
+## Required
 
 ```bash
 pip install ratchets
 ```
 
+## Optional
+
+This is only required if you plan to use Ratchets with PyTest.
+
+```bash
+pip install pytest
+```
+
 # Usage
 
-You first need to create a tests.toml file at the root of your repository. See [tests.toml](tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
+First, create a tests.toml file at the root of your repository. See [https://github.com/andrewlaack/ratchets/tests.toml](tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
 
 ## ratchet.regex
 
-These are tests that check regular expressions on the basis of each line of each file being examined.
+These are tests that check regular expressions for each line of code in each file being examined.
 
 **Example:**
+
 ```toml
 
 [ratchet.regex.exceptions]
@@ -49,18 +60,18 @@ except:
 
 ```
 
-The valid and invalid entries are not necessary, but we provide a CLI utility, ran with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing the tests.toml file in the current git repository or ```python3 -m ratchets.validate -f FILENAME``` if you need to test a specific toml file.
-
+The valid and invalid entries are not necessary, but we provide a CLI utility, executable with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing a .toml file that is not the repository default, specify it with ```python3 -m ratchets.validate -f FILENAME```. 
 
 ## ratchet.shell
 
 These are tests that run against each file where each evaluation is of the form:
 
 ```bash
-FILEPATH | COMMAND
+FILEPATH | SHELL_COMMAND
 
 ```
-It is assumed the standard output of the command describes each of the issues where each line is counted as an infraction.
+
+The standard output of the command is assumed to describe infractions, and the number of lines dictates the total number of infractions.
 
 **Example:**
 
@@ -81,33 +92,33 @@ Once your rules are defined, you need to count the infractions. This is done by 
 python3 -m ratchets -u
 ```
 
-This creates a ratchet_values.json file in the root of your project. This will be checked into git and is how the previous number of infractions is tracked to ensure infraction counts never increase.
+This creates a ratchet_values.json file in the root of your project. This should be checked into git to manage state.
 
 ## Excluding Files
 
-Once you run the update command, you should see a file in the root of your repository titled `ratchet_excluded.txt`. By default, this file is empty, but you can use standard .gitignore syntax to specify files that shouldn't be included in your tests. Additionally, all files specified by the gitignore of your project or that don't have the .py extension will not be included in the evaluation.
+Once the update command has been executed, the `ratchet_excluded.txt` file is created at the root of the repository. By default, this file is empty, but standard .gitignore syntax can be used to specify files that shouldn't be included in tests. Additional files that won't be tested are files specified in your gitignore and files that don't have the extension .py.
 
 ## Running as part of PyTest
 
-To set up tests, we provide an example file at [examples/example_test_ratchet.py](examples/example_test_ratchet.py), which defines tests to be ran with PyTest. In this file there are two uncommented methods that runs one test per rule in both sections (Python and command).
+To set up tests, we provide an example file at [examples/example_test_ratchet.py](https://github.com/andrewlaack/ratchets/examples/example_test_ratchet.py), which defines tests to be ran with PyTest. In this file there are two uncommented methods that runs one test per rule in both sections (regex and shell).
 
-The commented methods aggregate these tests together into two total tests (Python and command).
+The commented methods aggregate these tests together into two total tests (regex and shell).
 
-When creating your testing file, ensure it is being indexed by pytest. If you are unsure what this means, create a file named `test_ratchet.py` in the root of your project.
+When creating your PyTest file, ensure it is being indexed by PyTest. If you are unsure what this means, create a file named `test_ratchet.py` in the root of your project.
 
 ## Running Tests
 
 Running tests is as simple as running ```pytest``` from the root of the repository or specifying the testing file with ```pytest test_ratchet.py```.
 
-## Finding Issues
+## Additional Functionality
 
-At this point, your project has been set up, but as these tests are ran, and further infringements are found, there is a need to identify them. This, along with many other pieces of functionality can be viewed by running:
+Beyond a seamless integration with PyTest, Ratchets provides functionality to find the location of infringements. This and other functionality can be found by running:
 
 ```
 python3 -m ratchets --help
 ```
 
-Where you will see the following help message describing CLI usage for ratchets:
+Where you will see the following help message describing CLI usage for Ratchets:
 
 ```
 usage: __main__.py [-h] [-f FILE] [-c] [-r] [-v] [-b] [-m MAX_COUNT] [--compare-counts] [-u]
@@ -128,14 +139,12 @@ options:
                         update ratchets_values.json
 ```
 
-Of these, the -b option is particularly useful. When PyTests fail due to infringement counts increasing, it is necessary to identify where the new infringement occurred. By using the -b option you will, by default, see the 10 most recent changes that caused infringements for each rule.
-
 # Testing Ratchets Locally
 
-To run the tests for the Ratchets source code locally you can clone this repository with:
+To run the tests for the source code of Ratchets, you can clone this repository with:
 
 ```bash
 git clone https://github.com/andrewlaack/ratchets/
 ```
 
-Then `cd` into ratchets and run `PyTest`. The tests use the installed version of Ratchets in your (virtual) environment so you must ensure changes to source files are applied to Ratchets there.
+Then `cd` into `ratchets` and run `PyTest`. The tests use the installed version of Ratchets from your virtual environment. This means you must ensure changes to source files are applied to your installed `ratchets` package prior to running the tests.
