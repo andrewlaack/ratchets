@@ -389,17 +389,16 @@ def cli():
 
 
     parser.add_argument(
-        "-f",
-        "--file",
-        help="specify .toml file with tests"
+        "-t",
+        "--toml-file",
+        help="specify a .toml file with tests"
     )
 
-
     parser.add_argument(
-        "-p",
-        "--path",
+        "-f",
+        "--files",
         nargs="+",
-        help="specify file path(s) to run against"
+        help="specify file(s) to evaluate"
     )
     
     parser.add_argument(
@@ -433,7 +432,7 @@ def cli():
     )
 
     parser.add_argument(
-        "--compare-counts",
+        "-c", "--compare-counts",
         action="store_true",
         help="show only the differences in infraction counts between the current and last saved tests"
     )
@@ -445,7 +444,7 @@ def cli():
     )
 
     args = parser.parse_args()
-    file: Optional[str] = args.file
+    file: Optional[str] = args.toml_file
     cmd_mode: bool = args.shell_only
     regex_mode: bool = args.regex_only
     update: bool = args.update_ratchets
@@ -453,7 +452,7 @@ def cli():
     blame: bool = args.blame
     verbose: bool = args.verbose
     max_count: Optional[int] = args.max_count
-    paths: List[str] = args.path
+    paths: List[str] = args.files
 
     excludes_path = get_excludes_path()
 
