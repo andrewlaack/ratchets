@@ -4,7 +4,7 @@ Tests that lazily enforce a requirement across the entire repository.
 
 # What is it?
 
-Ratchets is a lazy way to enforce code compliance on an ongoing basis. This is done by defining regular expressions and shell commands to run against all non-excluded python files in a given repository. Tests pass when the number of non-compliant instances of code decreases and fail when they increase. This ensures future code does not have bad patterns, while still allowing old code to coexist until it is phased out. 
+Ratchets is a lazy way to enforce code compliance on an ongoing basis. This is done by defining regular expressions and shell commands to run against all non-excluded python files in a given repository. Tests only fail when the number of non-compliant lines of code increases. This ensures future code does not have bad patterns, while allowing old code to coexist until it is phased out. 
 
 # Installation
 
@@ -60,7 +60,7 @@ except:
 
 ```
 
-The valid and invalid entries are not necessary, but we provide a CLI utility, executable with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing a .toml file that is not the repository default, specify it with ```python3 -m ratchets.validate -f FILENAME```. 
+The valid and invalid entries are not necessary, but we provide a CLI utility, executable with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing a .toml file that is not the repository default, specify it with ```python3 -m ratchets.validate -t FILENAME```. 
 
 ## ratchet.shell
 
