@@ -22,25 +22,30 @@ def test_shell_rule(test_name: str, test_dict: dict) -> None:
 # def test_all_regex_rules():
 #     """Runs a test for all regex rules."""
 #     errors = []
+#     descriptions = []
 #     for test_name, rule in get_regex_tests().items():
 #         try:
 #             check_regex_rule(test_name, rule)
 #         except Exception as e:
-#             errors.append(f"{test_name}: {e}")
-#         except Exception as e:
-#             errors.append(f"{test_name}: unexpected error: {e!r}")
+#             desc = rule['description']
+#             if desc is not None:
+#                 descriptions.append(test_name + " - " + desc)
+#             errors.append(f"{test_name}")
 #     if errors:
-#         pytest.fail("Some regex rules failed:\n" + "\n".join(errors))
-#
+#         pytest.fail(" - ".join(errors) + "\n\n" + "\n\n".join(descriptions))
+# 
 # def test_all_shell_rules():
 #     """Runs a test for all shell rules."""
 #     errors = []
+#     descriptions = []
 #     for test_name, test_dict in get_shell_tests().items():
 #         try:
 #             check_shell_rule(test_name, test_dict)
 #         except Exception as e:
-#             errors.append(f"{test_name}: {e}")
-#         except Exception as e:
-#             errors.append(f"{test_name}: unexpected error: {e!r}")
+#             desc = test_dict['description']
+#             if not desc is None:
+#                 desc = "(" + desc + ")"
+#                 descriptions.append(test_name + " - " + desc)
+#             errors.append(test_name)
 #     if errors:
-#         pytest.fail("Some shell rules failed:\n" + "\n".join(errors))
+#         pytest.fail(" - ".join(errors) + "\n\n" + "\n\n".join(descriptions))

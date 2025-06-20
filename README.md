@@ -16,7 +16,7 @@ pip install ratchets
 
 ## Optional
 
-This is only required if you plan to use Ratchets with PyTest.
+**Note:** This is only required if you plan to use Ratchets with PyTest.
 
 ```bash
 pip install pytest
@@ -57,10 +57,13 @@ except:
 except:
     recover()"""
 ]
+description = "Bare except clauses catch all exceptions indiscriminately. This can hide bugs and important exceptions. To mitigate this, explicitly state the exception types that will be handled in the except clause."
 
 ```
 
 The valid and invalid entries are not necessary, but we provide a CLI utility, executable with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing a .toml file that is not the repository default, specify it with ```python3 -m ratchets.validate -t FILENAME```. 
+
+The description entry is also optional, but if provided, it will be included in the output of failing PyTest tests.
 
 ## ratchet.shell
 
@@ -79,6 +82,7 @@ The standard output of the command is assumed to describe infractions, and the n
 
 [ratchet.shell.line_too_long]
 command = "xargs -n1 awk 'length($0) > 88'"
+description = "Black sets the max line-width to 88 to help with the readability of code. Ensure all lines have <89 characters. You can run 'black FILENAME' to fix this issue."
 
 ```
 

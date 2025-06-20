@@ -112,7 +112,7 @@ def check_regex_rule(test_name: str, rule: Dict[str, Any]) -> None:
             description = ""
 
         raise Exception(
-            f"Regex infractions for '{test_name}' increased: baseline={baseline_count}, current={current_count}"
+            f"'{test_name}' increased from {baseline_count} to {current_count}"
             +  ". " + str(description)
         )
 
@@ -131,6 +131,6 @@ def check_shell_rule(test_name: str, test_dict: Dict[str, Any]) -> None:
         if description is None:
             description = ""
         raise Exception(
-            f"Shell infractions for '{test_name}' increased: baseline={baseline_count}, current={current_count}"
+            f"'{test_name}' increased from {baseline_count} to {current_count}"
             + ". " + str(description)
         )
