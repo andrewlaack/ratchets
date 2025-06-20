@@ -106,8 +106,12 @@ def filter_excluded_files(
 
 
 def evaluate_tests(
-    path: str, cmd_only: bool, regex_only: bool, paths: Optional[List[str]], override_filter: bool
-= False) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
+    path: str,
+    cmd_only: bool,
+    regex_only: bool,
+    paths: Optional[List[str]],
+    override_filter: bool = False,
+) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
     """Runs all requested tests based on the 'path' .toml file."""
     assert os.path.isfile(path)
 
@@ -245,8 +249,6 @@ def evaluate_shell_tests(
                 file_lines_map[str(file_path)] = file_map
         except Exception as e:
             raise Exception(f"Error reading {file_path}: {e}")
-
-
 
     def worker(test_name: str, shell_template: str, file_path: Path):
         """Evaluate an individual shell test for a given file."""
