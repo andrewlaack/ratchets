@@ -436,51 +436,39 @@ def add_blames(
                 if blame_res['line_content'] == line_content:
                     author = blame_res.get('author')
                     ts = blame_res.get('timestamp')
-                    print("HIT")
                     return (author, ts)
 
 
         cmd = ["git", "blame", "-L", f"{line_no},{line_no}", "--porcelain", file_path]
-        try:
-            res = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=repo_root, timeout=5
-            )
-            if res.returncode != 0:
-                return None, None
+        res = subprocess.run(
+            cmd, capture_output=True, text=True, cwd=repo_root, timeout=5
+        )
 
-            author: Optional[str] = None
-            author_time: Optional[str] = None
+        if res.returncode != 0:
+            print(res.stderr)
+            raise FileNotFoundError("File not found for blaming: is it checked into git?")
 
-            for l in res.stdout.splitlines():
-                if l.startswith("author "):
-                    author = l[len("author ") :].strip()
-                elif l.startswith("author-time "):
-                    try:
-                        ts = int(l[len("author-time ") :].strip())
-                        author_time = datetime.fromtimestamp(ts).isoformat()
-                    except Exception:
-                        author_time = None
-                if author is not None and author_time is not None:
-                    break
+        author: Optional[str] = None
+        author_time: Optional[str] = None
 
-            # line_content: str,
-            # line_number: int,
-            # timestamp: datetime,
-            # file_name: str,
-            # author: str
-
-            
-            assert line_no is not None
-            assert author_time is not None
-
-            print("INSERTING")
-
-            db.create_or_update_blame(line_content, int(line_no), datetime.fromisoformat(author_time), file_path , str(author))
+        for l in res.stdout.splitlines():
+            if l.startswith("author "):
+                author = l[len("author ") :].strip()
+            elif l.startswith("author-time "):
+                ts = int(l[len("author-time ") :].strip())
+                author_time = datetime.fromtimestamp(ts).isoformat()
+            if author is not None and author_time is not None:
+                break
 
 
-            return author, author_time
-        except Exception:
-            return None, None
+        
+        assert line_no is not None
+        assert author_time is not None
+
+        db.create_or_update_blame(line_content, int(line_no), datetime.fromisoformat(author_time), file_path , str(author))
+
+
+        return author, author_time
 
     def get_last_commit_for_file(file_path: str) -> Tuple[Optional[str], Optional[str]]:
         """Internal method to get the most recent commit's information for a file."""
