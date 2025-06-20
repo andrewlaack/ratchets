@@ -82,7 +82,7 @@ command = "xargs -n1 awk 'length($0) > 88'"
 
 ```
 
-This is an example of an `awk` command being used to print each line that has more than 88 characters (the default for [black](https://github.com/psf/black). As these are printed, they are counted as infractions.
+This is an example of an `awk` command being used to print each line that has more than 88 characters (this is the default line-length for [black](https://github.com/psf/black)). As these are printed, they are counted as infractions.
 
 ## Updating Ratchets
 
