@@ -71,7 +71,7 @@ FILEPATH | SHELL_COMMAND
 
 ```
 
-The standard output of the command is assumed to describe infractions, and the number of lines dictates the total number of infractions.
+The standard output of the command is assumed to describe infractions, and the number of lines dictates the total number of infractions. It should also be noted that internally we perform a lookup for the line number based on the standard output. As such, ensure the standard output is the **exact** same text from the line that contains infractions.
 
 **Example:**
 
