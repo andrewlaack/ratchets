@@ -49,17 +49,19 @@ class CachingDatabase:
         conn.close()
 
 
-    def create_blame(self, line_content : str, line_number : int, timestamp : datetime, file_name: str):
-        """Cache a blame with the line's content, the line number, a timestamp, and the file's name."""
+    def create_or_update_blame(self, line_content: str, line_number: int, timestamp: datetime, file_name: str):
+        """Insert or update a blame: if (file_name, line_number) exists, update it; otherwise insert."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        create_query = '''
+        upsert_query = '''
             INSERT INTO blames (file_name, line_number, line_content, timestamp)
             VALUES (?, ?, ?, ?)
+            ON CONFLICT(file_name, line_number) DO UPDATE SET
+                line_content=excluded.line_content,
+                timestamp=excluded.timestamp
         '''
-
-        cursor.execute(create_query, (
+        cursor.execute(upsert_query, (
             file_name,
             line_number,
             line_content,
@@ -70,29 +72,6 @@ class CachingDatabase:
         cursor.close()
         conn.close()
 
-    def update_blame(self, line_content : str, line_number : int, timestamp : datetime, file_name: str):
-        """Update the existing blame that has the same line_number and file_name, with a new timestamp and line_content"""
-        raise NotImplementedError("Update blame not implemented")
-
-    def clear_cache(self):
-        """Clear all cached blames."""
-        raise NotImplementedError("Clear cache not implemented")
-
-    def get_blame(self, line_number: int, file_name: str) -> Optional[Tuple[str, datetime]]:
-        """Lookup the blame for the specified file and line number.
-
-        In cases where no such blame exists, 'None' will be returned.
-        This does not guarantee the cached value that is returned
-        is valid as an old version of the file could have had
-        an issue on this line with different line content. A line
-        content lookup should be done on the client side to verify
-        the blame is likely up to date. If it is not up to date,
-        run another blame and update the record accordingly.
-        """
-        raise NotImplementedError("Get blame not implemented")
-
-
-
 if __name__ == "__main__":
     """Creates a cache database with the user specified path as the location of the DB on disk."""
     parser = argparse.ArgumentParser(description="Initialize a caching SQLite database.")
@@ -100,7 +79,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     db = CachingDatabase(args.path)
 
-    db.create_blame(
-        "test line content ", 100, datetime.now(), "file_name"
+    db.create_or_update_blame(
+        "test line content 2", 200, datetime.now(), "file_name"
     )
 

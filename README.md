@@ -104,7 +104,7 @@ This is an example of an `awk` command being used to print each line that has mo
 
 ## Updating Ratchets
 
-Once your rules are defined, you need to count the infractions. This is done by running.
+Once your rules are defined, you need to count the infractions. This is done by running:
 
 ```bash
 python3 -m ratchets -u
