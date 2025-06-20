@@ -106,8 +106,8 @@ def filter_excluded_files(
 
 
 def evaluate_tests(
-    path: str, cmd_only: bool, regex_only: bool, paths: Optional[List[str]]
-) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
+    path: str, cmd_only: bool, regex_only: bool, paths: Optional[List[str]], override_filter: bool
+= False) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
     """Runs all requested tests based on the 'path' .toml file."""
     assert os.path.isfile(path)
 
@@ -122,7 +122,9 @@ def evaluate_tests(
     excluded_path = os.path.join(root, EXCLUDED_FILENAME)
     ignore_path = os.path.join(root, IGNORE_FILENAME)
 
-    files = filter_excluded_files(files, excluded_path, ignore_path)
+    if not override_filter:
+        files = filter_excluded_files(files, excluded_path, ignore_path)
+
     regex_issues: Dict[str, List[Dict[str, Any]]] = {}
     shell_issues: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -142,7 +144,7 @@ def print_issues(issues: Dict[str, List[Dict[str, Any]]]) -> None:
                 file_path = match["file"]
                 line = match.get("line")
                 content = match["content"]
-                truncated = content if len(content) <= 80 else content[:80] + "..."
+                truncated = content if len(content) <= 50 else content[:50] + "..."
                 if line is not None:
                     print(f"  -> {file_path}:{line}: {truncated}")
                 else:
@@ -225,19 +227,26 @@ def evaluate_shell_tests(
     results: Dict[str, List[Dict[str, Any]]] = {test_name: [] for test_name in test_str}
     lock = threading.Lock()
 
-    # Map from file -> normalized line -> list of line numbers
+    # we track each line number
+    # for duplicates, popping them
+    # as they are used, if they are
+    # used.
+
     file_lines_map: Dict[str, Dict[str, List[int]]] = {}
+
     for file_path in files:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 lines = f.readlines()
                 file_map: Dict[str, List[int]] = {}
                 for idx, line in enumerate(lines):
-                    normalized = line.rstrip("\n")  # match shell output
+                    normalized = line.rstrip("\n")
                     file_map.setdefault(normalized, []).append(idx + 1)
                 file_lines_map[str(file_path)] = file_map
         except Exception as e:
             raise Exception(f"Error reading {file_path}: {e}")
+
+
 
     def worker(test_name: str, shell_template: str, file_path: Path):
         """Evaluate an individual shell test for a given file."""
@@ -248,14 +257,29 @@ def evaluate_shell_tests(
             result = subprocess.run(
                 cmd_str, shell=True, text=True, capture_output=True, timeout=5
             )
+
             output = result.stdout.strip()
+
             if output:
                 lines = output.splitlines()
+
                 with lock:
                     for line in lines:
+
                         content = line.rstrip("\n")
                         line_numbers = file_lines_map[file_str].get(content, [])
-                        for ln in line_numbers:
+
+                        # assume we found the last line this happened,
+                        # remove it, and repeat for each infraction of this line.
+                        # this can be wrong, but it is impossible to
+                        # solve the ambiguity of multiple lines matching,
+                        # but not causing infractions, which can happen
+                        # when shell commands are defined to consider multiple lines,
+                        # as can be the case with ast and such.
+
+                        if line_numbers:
+                            ln = line_numbers[0]
+                            line_numbers.pop()
                             results[test_name].append(
                                 {
                                     "file": file_str,
@@ -263,6 +287,7 @@ def evaluate_shell_tests(
                                     "content": content,
                                 }
                             )
+
         except subprocess.TimeoutExpired:
             raise Exception(f"Timeout while running test '{test_name}' on {file_path}")
 

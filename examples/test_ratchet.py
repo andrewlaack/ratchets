@@ -31,7 +31,7 @@ def test_shell_rule(test_name: str, test_dict: dict) -> None:
 #             errors.append(f"{test_name}: unexpected error: {e!r}")
 #     if errors:
 #         pytest.fail("Some regex rules failed:\n" + "\n".join(errors))
-#
+# 
 # def test_all_shell_rules():
 #     """Runs a test for all shell rules."""
 #     errors = []

@@ -39,7 +39,7 @@ def get_regex_tests() -> Dict[str, Any]:
 def get_shell_tests() -> Dict[str, Any]:
     """Extract and return the 'ratchet.shell' section from config."""
     config = get_config()
-    shell_tests = config.get("ratchet", {}).get("command")
+    shell_tests = config.get("ratchet", {}).get("shell")
     return shell_tests or {}
 
 
@@ -65,7 +65,7 @@ def get_baseline_counts() -> Dict[str, int]:
 def get_filtered_files() -> List[Path]:
     """Retrieve all Python files under the project, filtering excluded paths."""
     root = get_root()
-    files: List[Path] = get_python_files(root)
+    files: List[Path] = get_python_files(root, None)
     excluded_path: str = os.path.join(root, "ratchet_excluded.txt")
     ignore_path: str = os.path.join(root, ".gitignore")
 

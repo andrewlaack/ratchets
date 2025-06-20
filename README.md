@@ -121,8 +121,7 @@ python3 -m ratchets --help
 Where you will see the following help message describing CLI usage for Ratchets:
 
 ```
-usage: run_tests.py [-h] [-t TOML_FILE] [-f FILES [FILES ...]] [-s] [-r] [-v] [-b]
-                    [-m MAX_COUNT] [-c] [-u]
+usage: run_tests.py [-h] [-t TOML_FILE] [-f FILES [FILES ...]] [-s] [-r] [-v] [-b] [-m MAX_COUNT] [-c] [-u]
 
 Python ratchet testing
 
@@ -135,13 +134,10 @@ options:
   -s, --shell-only      run only shell-based tests
   -r, --regex-only      run only regex-based tests
   -v, --verbose         run verbose tests, printing each infringing line
-  -b, --blame           run an additional git-blame for each infraction, ordering results
-                        by timestamp
+  -b, --blame           run an additional git-blame for each infraction, ordering results by timestamp
   -m MAX_COUNT, --max-count MAX_COUNT
-                        maximum infractions to display per test (only applies with
-                        --blame; default is 10)
-  -c, --compare-counts  show only the differences in infraction counts between the current
-                        and last saved tests
+                        maximum infractions to display per test (only applies with --blame; default is 10)
+  -c, --compare-counts  show only the differences in infraction counts between the current and last saved tests
   -u, --update-ratchets
                         update ratchets_values.json
 ```
