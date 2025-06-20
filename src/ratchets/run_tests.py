@@ -225,12 +225,24 @@ def evaluate_shell_tests(
     results: Dict[str, List[Dict[str, Any]]] = {test_name: [] for test_name in test_str}
     lock = threading.Lock()
 
-    def worker(test_name: str, shell_template: str, file_path: str):
-        """Evaluate an individual shell test for a given file."""
-        cmd_str = f"echo {file_path} | {shell_template}"
+    # Map from file -> normalized line -> list of line numbers
+    file_lines_map: Dict[str, Dict[str, List[int]]] = {}
+    for file_path in files:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+                file_map: Dict[str, List[int]] = {}
+                for idx, line in enumerate(lines):
+                    normalized = line.rstrip("\n")  # match shell output
+                    file_map.setdefault(normalized, []).append(idx + 1)
+                file_lines_map[str(file_path)] = file_map
+        except Exception as e:
+            raise Exception(f"Error reading {file_path}: {e}")
 
-        # TODO:
-        # Add hashmap lookup for lines in file to blame w/ line number.
+    def worker(test_name: str, shell_template: str, file_path: Path):
+        """Evaluate an individual shell test for a given file."""
+        file_str = str(file_path)
+        cmd_str = f"echo {file_str} | {shell_template}"
 
         try:
             result = subprocess.run(
@@ -241,9 +253,16 @@ def evaluate_shell_tests(
                 lines = output.splitlines()
                 with lock:
                     for line in lines:
-                        results[test_name].append(
-                            {"file": file_path, "line": None, "content": line.strip()}
-                        )
+                        content = line.rstrip("\n")
+                        line_numbers = file_lines_map[file_str].get(content, [])
+                        for ln in line_numbers:
+                            results[test_name].append(
+                                {
+                                    "file": file_str,
+                                    "line": ln,
+                                    "content": content,
+                                }
+                            )
         except subprocess.TimeoutExpired:
             raise Exception(f"Timeout while running test '{test_name}' on {file_path}")
 
@@ -336,7 +355,6 @@ def print_issues_with_blames(
                     author = match.get("blame_author") or "Unknown"
                     ts = match.get("blame_time") or "Unknown"
 
-                    # True when regex test
                     if line_no is not None:
                         print(f"  -> {file_path}:{line_no}  by {author} at {ts}")
                         print(f"       {truncated}")
