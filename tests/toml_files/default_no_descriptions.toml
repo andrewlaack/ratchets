@@ -24,14 +24,12 @@ except:
 except:
     recover()"""
 ]
-description = "Bare except clauses catch all exceptions indiscriminately. This can hide bugs and important exceptions. To mitigate this, explicitly state the exception types that will be handled in the except clause."
 
 
 [ratchet.regex.lightning]
 regex = "import pytorch_lightning|from pytorch_lightning"
 valid = ["import torch", "from my_project import Trainer"]
 invalid = ["import pytorch_lightning", "from pytorch_lightning import LightningModule"]
-description = "The standard PyTorch library should be used in lieu of the PyTorch Lightning package."
 
 
 [ratchet.regex.tabs]
@@ -46,7 +44,6 @@ invalid = [
   """def bar():
 \treturn True"""
 ]
-description = "As per the PEP 8 style guide for Python code, spaces are to be used instead of tabs for indentation. To mitigate this issue, run 'black FILENAME' to reformat the file with black, or manually fix the issue and update your editor to replace tabs with space."
 
 # printed text is assumed to be failures
 # each evaluation **must** accept a file path as input
@@ -55,4 +52,3 @@ description = "As per the PEP 8 style guide for Python code, spaces are to be us
 
 [ratchet.shell.line_too_long]
 command = "xargs -n1 awk 'length($0) > 88'"
-description = "Black sets the max line-width to 88 to help with the readability of code. Ensure all lines have <89 characters. You can run 'black FILENAME' to fix this issue."
