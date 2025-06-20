@@ -1,3 +1,5 @@
+from ratchets.caching import CachingDatabase
+from datetime import datetime
 import os
 import threading
 import pathspec
@@ -14,6 +16,7 @@ EXCLUDED_FILENAME = "ratchet_excluded.txt"
 IGNORE_FILENAME = ".gitignore"
 RATCHET_FILENAME = "ratchet_values.json"
 TEST_FILENAME = "tests.toml"
+CACHING_FILENAME = ".ratchet_blame.db"
 
 
 def print_diff(current_json: Dict[str, int], previous_json: Dict[str, int]) -> None:
@@ -414,13 +417,29 @@ def add_blames(
         repo_root: Optional[str] = find_project_root()
     except Exception:
         repo_root = None
+    
+    db_path = os.path.join(str(repo_root),  CACHING_FILENAME)
+    db = CachingDatabase(db_path)
 
     def get_blame_for_line(
-        file_path: str, line_no: Optional[int]
+        file_path: str, line_no: Optional[int], line_content : str
     ) -> Tuple[Optional[str], Optional[str]]:
         """Internal method for getting the blame information of a specific LoC."""
         if repo_root is None:
             return None, None
+
+
+        if line_no is not None:
+            blame_res = db.get_blame(line_no, file_path)
+            if blame_res is not None:
+                if blame_res['line_content'] == line_content:
+                    author = blame_res.get('author')
+                    ts = blame_res.get('timestamp')
+                    print("HIT")
+                    return (author, ts)
+
+        print("INSERTING")
+
         cmd = ["git", "blame", "-L", f"{line_no},{line_no}", "--porcelain", file_path]
         try:
             res = subprocess.run(
@@ -443,6 +462,20 @@ def add_blames(
                         author_time = None
                 if author is not None and author_time is not None:
                     break
+
+            # line_content: str,
+            # line_number: int,
+            # timestamp: datetime,
+            # file_name: str,
+            # author: str
+
+            
+            assert line_no is not None
+            assert author_time is not None
+
+            db.create_or_update_blame(line_content, int(line_no), datetime.fromisoformat(author_time), file_path , str(author))
+
+
             return author, author_time
         except Exception:
             return None, None
@@ -476,11 +509,15 @@ def add_blames(
         for test_name, matches in issues.items():
             for match in matches:
                 file_path = match.get("file")
+                line_content = match.get('content')
+
+                assert line_content is not None
+
                 line_no = match.get("line")
                 if not file_path:
                     continue
                 if line_no is not None:
-                    author, author_time = get_blame_for_line(file_path, line_no)
+                    author, author_time = get_blame_for_line(file_path, line_no, line_content)
                 else:
                     author, author_time = get_last_commit_for_file(file_path)
                 match["blame_author"] = author if author is not None else None
