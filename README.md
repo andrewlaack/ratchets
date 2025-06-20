@@ -61,7 +61,21 @@ description = "Bare except clauses catch all exceptions indiscriminately. This c
 
 ```
 
-The valid and invalid entries are not necessary, but we provide a CLI utility, executable with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing a .toml file that is not the repository default, specify it with ```python3 -m ratchets.validate -t FILENAME```. 
+The valid and invalid entries are not necessary, but we provide a CLI utility to verify the regular expressions don't exist in the valid strings and do exist in the invalid strings. This can be ran with:
+
+```bash
+
+python3 -m ratchets.validate
+
+```
+
+If you are testing a .toml file that is not the repository default, it can be specified with:
+
+```bash
+
+python3 -m ratchets.validate -t FILENAME
+
+```
 
 The description entry is also optional, but if provided, it will be included in the output of failing PyTest tests.
 
