@@ -418,6 +418,7 @@ def add_blames(
     except Exception:
         repo_root = None
     
+
     db_path = os.path.join(str(repo_root),  CACHING_FILENAME)
     db = CachingDatabase(db_path)
 
@@ -438,7 +439,6 @@ def add_blames(
                     print("HIT")
                     return (author, ts)
 
-        print("INSERTING")
 
         cmd = ["git", "blame", "-L", f"{line_no},{line_no}", "--porcelain", file_path]
         try:
@@ -472,6 +472,8 @@ def add_blames(
             
             assert line_no is not None
             assert author_time is not None
+
+            print("INSERTING")
 
             db.create_or_update_blame(line_content, int(line_no), datetime.fromisoformat(author_time), file_path , str(author))
 
