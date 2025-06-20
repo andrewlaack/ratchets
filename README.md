@@ -24,7 +24,7 @@ pip install pytest
 
 # Usage
 
-First, create a tests.toml file at the root of your repository. See [tests.toml](https://github.com/andrewlaack/ratchets/blob/toml-naming-change/tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
+First, create a tests.toml file at the root of your repository. See [tests.toml](https://github.com/andrewlaack/ratchets/blob/main/tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
 
 ## ratchet.regex
 
