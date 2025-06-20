@@ -48,6 +48,7 @@ def test_files():
     if exception1_sum != 6:
         raise Exception(f"Incorrect number of infractions counted for {filtered1_file}")
 
+
 if __name__ == "__main__":
     """Invoke all tests in the file when called directly."""
     test_files()

@@ -107,12 +107,13 @@ def check_regex_rule(test_name: str, rule: Dict[str, Any]) -> None:
     baseline_counts = get_baseline_counts()
     baseline_count = baseline_counts.get(test_name, 0)
     if current_count > baseline_count:
-        details = "\n".join(
-            f"{r.get('file')}:{r.get('line')} — {r.get('content')}" for r in matches
-        )
+        description = rule.get('description')
+        if description is None:
+            description = ""
+
         raise Exception(
-            f"Regex violations for '{test_name}' increased: baseline={baseline_count}, current={current_count}\n"
-            + details
+            f"Regex infractions for '{test_name}' increased: baseline={baseline_count}, current={current_count}"
+            +  ". " + str(description)
         )
 
 
@@ -126,8 +127,10 @@ def check_shell_rule(test_name: str, test_dict: Dict[str, Any]) -> None:
     baseline_counts = get_baseline_counts()
     baseline_count = baseline_counts.get(test_name, 0)
     if current_count > baseline_count:
-        details = "\n".join(f"{r.get('file')} — {r.get('content')}" for r in matches)
+        description = test_dict.get('description')
+        if description is None:
+            description = ""
         raise Exception(
-            f"shell violations for '{test_name}' increased: baseline={baseline_count}, current={current_count}\n"
-            + details
+            f"Shell infractions for '{test_name}' increased: baseline={baseline_count}, current={current_count}"
+            + ". " + str(description)
         )

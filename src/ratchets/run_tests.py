@@ -365,7 +365,9 @@ def print_issues_with_blames(
         for test_name, matches in issues_dict.items():
             if matches:
                 sorted_matches = sorted(
-                    matches, key=lambda m: _parse_time(m.get("blame_time")), reverse=True
+                    matches,
+                    key=lambda m: _parse_time(m.get("blame_time")),
+                    reverse=True,
                 )
                 print()
                 print(
@@ -487,7 +489,6 @@ def add_blames(
     return test_issues, shell_issues
 
 
-
 def expand_paths(file_args: Optional[List[str]]) -> Optional[List[str]]:
     """Expands glob patterns and directories into a list of file paths."""
     if not file_args:
@@ -506,8 +507,9 @@ def expand_paths(file_args: Optional[List[str]]) -> Optional[List[str]]:
             expanded_paths.append(str(path))
         else:
             print(f"Warning: '{item}' does not exist or is not valid.")
-    
+
     return expanded_paths if expanded_paths else None
+
 
 def cli():
     """Primary entry point for CLI usage, providing parsing and function calls."""
@@ -574,7 +576,11 @@ def cli():
     paths = expand_paths(path_files)
 
     if paths is not None:
-        paths = [path for path in paths if Path(path).suffix == ".py" and Path(path).is_file()]
+        paths = [
+            path
+            for path in paths
+            if Path(path).suffix == ".py" and Path(path).is_file()
+        ]
 
     excludes_path = get_excludes_path()
 

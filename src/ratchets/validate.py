@@ -62,4 +62,3 @@ if __name__ == "__main__":
     file: Optional[str] = args.toml_file
     if validate(file):
         print("Your .toml file is valid!")
-
