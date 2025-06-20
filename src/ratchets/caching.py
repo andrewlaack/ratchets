@@ -2,10 +2,18 @@ import sqlite3
 import argparse
 from datetime import datetime
 from typing import Optional, Dict
-import os
-import sys
-import subprocess
-import glob
+
+# TODO:
+
+# improve performance by adding the ability to bulk create.
+# this will stop the commit close cycle which seems to be causing
+# quite a bit of latency.
+
+# Benchmarking on Django code base (shell rule of 80 chars max with total of XXX blames evaluated):
+
+# Saving each blame one at a time to SQLite DB
+# FIRST RUN: 11m7.030s
+# CACHE RUN: 0m2.409s
 
 class CachingDatabase:
 
@@ -109,11 +117,7 @@ class CachingDatabase:
         except Exception:
             return None
 
-        return {
-            'author': author,
-            'timestamp': ts,
-            'line_content': line_content
-        }
+        return { 'author': str(author), 'timestamp': str(ts), 'line_content': str(line_content)}
 
 
 if __name__ == "__main__":
