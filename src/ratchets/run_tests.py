@@ -238,6 +238,11 @@ def evaluate_shell_tests(
 
     file_lines_map: Dict[str, Dict[str, List[int]]] = {}
 
+    # TODO:
+    # Parallelize map creation; this is heavily I/O bound.
+    # Also, check if this is the best approach. Would it
+    # just be better to run in O(n) given smaller coefficients?
+
     for file_path in files:
         try:
             with open(file_path, "r", encoding="utf-8") as f:

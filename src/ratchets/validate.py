@@ -57,7 +57,9 @@ def validate(filename: Optional[str]) -> Optional[bool]:
 if __name__ == "__main__":
     """Entry point to parse CLI inputs and evaluate .toml test file."""
     parser = argparse.ArgumentParser(description="Regex ratchet validation")
-    parser.add_argument("-f", "--file")
+    parser.add_argument("-t", "--toml-file")
     args = parser.parse_args()
-    file: Optional[str] = args.file
-    validate(file)
+    file: Optional[str] = args.toml_file
+    if validate(file):
+        print("Your .toml file is valid!")
+

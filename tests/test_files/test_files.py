@@ -5,7 +5,7 @@ import json
 
 
 def test_files():
-    """Tests the functionallity of TOML and file specification."""
+    """Tests the functionallity of .toml and file specification."""
 
     # directory: Union[str, Path], paths: Optional[List[str]]
     # ) -> List[Path]:
