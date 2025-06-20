@@ -100,7 +100,7 @@ Once the update command has been executed, the `ratchet_excluded.txt` file is cr
 
 ## Running as part of PyTest
 
-To set up tests, we provide an example file at [examples/example_test_ratchet.py](https://github.com/andrewlaack/ratchets/blob/toml-naming-change/examples/example_test_ratchet.py), which defines tests to be ran with PyTest. In this file there are two uncommented methods that runs one test per rule in both sections (regex and shell).
+To set up tests, we provide an example file at [examples/example_test_ratchet.py](https://github.com/andrewlaack/ratchets/blob/main/examples/example_test_ratchet.py), which defines tests to be ran with PyTest. In this file there are two uncommented methods that runs one test per rule in both sections (regex and shell).
 
 The commented methods aggregate these tests together into two total tests (regex and shell).
 
