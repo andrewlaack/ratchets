@@ -24,7 +24,7 @@ pip install pytest
 
 # Usage
 
-First, create a tests.toml file at the root of your repository. See [https://github.com/andrewlaack/ratchets/tests.toml](tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
+First, create a tests.toml file at the root of your repository. See [tests.toml](https://github.com/andrewlaack/ratchets/blob/toml-naming-change/tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
 
 ## ratchet.regex
 
@@ -100,7 +100,7 @@ Once the update command has been executed, the `ratchet_excluded.txt` file is cr
 
 ## Running as part of PyTest
 
-To set up tests, we provide an example file at [examples/example_test_ratchet.py](https://github.com/andrewlaack/ratchets/examples/example_test_ratchet.py), which defines tests to be ran with PyTest. In this file there are two uncommented methods that runs one test per rule in both sections (regex and shell).
+To set up tests, we provide an example file at [examples/example_test_ratchet.py](https://github.com/andrewlaack/ratchets/blob/toml-naming-change/examples/example_test_ratchet.py), which defines tests to be ran with PyTest. In this file there are two uncommented methods that runs one test per rule in both sections (regex and shell).
 
 The commented methods aggregate these tests together into two total tests (regex and shell).
 
