@@ -196,3 +196,5 @@ notes/
 data/
 testing.db
 .ratchet_blame.db
+temp/
+temp_*

@@ -17,15 +17,16 @@ import json
 
 
 def test_config():
-    test_path = run_tests.get_file_path(None)
+    test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
 
-    assert os.path.isfile(test_path), "tests.toml not found"
+    assert os.path.isfile(test_path), "default.toml not found"
 
     try:
         issues = run_tests.evaluate_tests(test_path, True, True, None)
-        run_tests.update_ratchets(test_path, True, True, None)
+        run_tests.update_ratchets(test_path, True, True, None, run_tests.find_project_root() + "/tests/test_files/temp_ratchet1.json")
     except Exception as e:
         assert False, f"Unable to update ratchets using 'tests.toml': {e}"
+
 
 
 def test_formatting():
@@ -58,7 +59,8 @@ def test_formatting():
 
 # ensure updated values match subsequent runs.
 def verify_updating():
-    test_path = run_tests.get_file_path(None)
+    test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
+
     run_tests.update_ratchets(test_path, True, True, None)
 
     # if one is false then the results are guaranteed
@@ -84,7 +86,7 @@ def test_ratchet_excluded_missing():
         except Exception as e:
             assert False, "Unable to delete ratchet_values.json"
 
-    test_path = run_tests.get_file_path(None)
+    test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
 
     try:
         previous = run_tests.load_ratchet_results()
@@ -99,7 +101,6 @@ def test_ratchet_excluded_missing():
     run_tests.update_ratchets(test_path, True, True, None)
 
     return
-
 
 # test when there are additional values,
 # less values, no values (in current).

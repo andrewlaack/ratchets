@@ -162,9 +162,13 @@ def print_issues(issues: Dict[str, List[Dict[str, Any]]]) -> None:
             print(f"\n{test_name} — no issues found.")
 
 
-def load_ratchet_results() -> Dict[str, Any]:
+def load_ratchet_results(file_location : Optional[str] = None) -> Dict[str, Any]:
     """Load and return current ratchet values.."""
-    path = get_ratchet_path()
+
+    if file_location is None:
+        path = get_ratchet_path()
+    else:
+        path = file_location
 
     if not os.path.isfile(path):
         return {}
@@ -323,12 +327,17 @@ def results_to_json(
 
 
 def update_ratchets(
-    test_path: str, cmd_mode: bool, regex_mode: bool, paths: Optional[List[str]]
+    test_path: str, cmd_mode: bool, regex_mode: bool, paths: Optional[List[str]], override_ratchet_path : Optional[str] = None
 ) -> None:
     """Update the current ratchets based on the outcome of the tests defined in 'test_path'."""
     results = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
     results_json = results_to_json(results)
-    path = get_ratchet_path()
+
+    if override_ratchet_path is None:
+        path = get_ratchet_path()
+    else:
+        path = override_ratchet_path
+
     with open(path, "w") as file:
         file.writelines(results_json)
 

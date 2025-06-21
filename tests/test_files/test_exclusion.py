@@ -1,28 +1,22 @@
 from ratchets import run_tests
 from ratchets import abstracted_tests
 import os
-import toml
-from typing import Dict, Any
-import json
 import shutil
 
 
-def test_config():
-    test_path = run_tests.get_file_path(None)
+# TODO:
+# Use path.join instead of '/' as that is OS dependent.
 
-    assert os.path.isfile(test_path), "tests.toml not found"
+def test_config():
+    test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
+
+    assert os.path.isfile(test_path), "default.toml not found"
 
     try:
         issues = run_tests.evaluate_tests(test_path, True, True, None)
-        run_tests.update_ratchets(test_path, True, True, None)
+        run_tests.update_ratchets(test_path, True, True, None, run_tests.find_project_root() + "/tests/test_files/temp_ratchet1.json")
     except Exception as e:
         assert False, f"Unable to update ratchets using 'tests.toml': {e}"
-
-
-# TODO:
-# add gitignore checks.
-# gitignore is handled the same way as
-# the excluded file, but should be checked too
 
 
 def test_exclusion():
