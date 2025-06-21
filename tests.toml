@@ -83,9 +83,20 @@ invalid = [
 description = "Text files should end with a newline character to satisfy POSIX tools and avoid diff noise."
 
 
-[ratchet.shell.no_todo_comments]
-command = "grep -En '\\bTODO\\b|\\bFIXME\\b'"
-description = "Ensure no TODO or FIXME comments remain; address or file an issue instead of leaving in code."
+[ratchet.regex.no_todo_comments]
+regex = "(?i)#.*\\b(?:TODO|FIXME)\\b"
+valid = [
+  "# This is a regular comment without keywords",
+  "print('TODO in string literal is not caught as a comment')",
+  "x = 42  # calculation complete"
+]
+invalid = [
+  "# TODO: implement this function",
+  "    # FIXME handle edge cases",
+  "def foo():\n    # todo: remove debug code",
+  "some_var = 'value'  # FIXME: adjust value later"
+]
+description = "Ensure no TODO or FIXME comments remain in code; address or file an issue instead of leaving these markers."
 
 
 [ratchet.shell.line_too_long]
