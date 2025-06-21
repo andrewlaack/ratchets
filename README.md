@@ -139,7 +139,7 @@ python3 -m ratchets --help
 Where you will see the following help message describing CLI usage for Ratchets:
 
 ```
-usage: run_tests.py [-h] [-t TOML_FILE] [-f FILES [FILES ...]] [-s] [-r] [-v] [-b] [--clear-cache] [-m MAX_COUNT] [-c] [-u]
+usage: __main__.py [-h] [-t TOML_FILE] [-f FILES [FILES ...]] [-s] [-r] [-v] [-b] [--clear-cache] [-m MAX_COUNT] [-c] [-u]
 
 Python ratchet testing
 
@@ -161,7 +161,7 @@ options:
                         update ratchets_values.json
 ```
 
-**Note:** Ensure you add `.ratchet_blame.db` to your .gitignore file after running the `--blame` option. This is the location Ratchets caches blame evaluations to improve performance for larger codebases.
+**Note:** Ensure you add `.ratchet_blame.db` to your .gitignore file when using the `--blame` option. This is the location Ratchets caches blame evaluations to improve performance for larger codebases.
  
 # Testing Ratchets Locally
 
