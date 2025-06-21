@@ -171,4 +171,4 @@ To run the tests for the source code of Ratchets, you can clone this repository 
 git clone https://github.com/andrewlaack/ratchets/
 ```
 
-Then `cd` into `ratchets` and run `PyTest`. The tests use the installed version of Ratchets from your virtual environment. This means you must ensure changes to source files are applied to your installed `ratchets` package prior to running the tests.
+Then `cd` into `ratchets` and run `pytest`. The tests use the installed version of Ratchets from your virtual environment. This means you must ensure changes to source files are applied to your installed `ratchets` package prior to running the tests.
