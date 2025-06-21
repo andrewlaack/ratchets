@@ -95,7 +95,7 @@ def get_python_files(
 def filter_excluded_files(
     files: List[Path], excluded_path: str, ignore_path: str
 ) -> List[Path]:
-    """Returns a new list of file paths that consists of all 'files' paths not excluded in the 'excluded_path' or 'ignore_path'."""
+    """Get a list of paths not excluded by the 'excluded_path' or 'ignore_path'."""
     patterns = []
     if os.path.isfile(excluded_path):
         with open(excluded_path, "r") as f:
@@ -162,7 +162,7 @@ def print_issues(issues: Dict[str, List[Dict[str, Any]]]) -> None:
             print(f"\n{test_name} — no issues found.")
 
 
-def load_ratchet_results(file_location : Optional[str] = None) -> Dict[str, Any]:
+def load_ratchet_results(file_location: Optional[str] = None) -> Dict[str, Any]:
     """Load and return current ratchet values.."""
 
     if file_location is None:
@@ -327,9 +327,13 @@ def results_to_json(
 
 
 def update_ratchets(
-    test_path: str, cmd_mode: bool, regex_mode: bool, paths: Optional[List[str]], override_ratchet_path : Optional[str] = None
+    test_path: str,
+    cmd_mode: bool,
+    regex_mode: bool,
+    paths: Optional[List[str]],
+    override_ratchet_path: Optional[str] = None,
 ) -> None:
-    """Update the current ratchets based on the outcome of the tests defined in 'test_path'."""
+    """Update the current ratchets based on 'test_path'."""
     results = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
     results_json = results_to_json(results)
 
@@ -346,7 +350,7 @@ def print_issues_with_blames(
     results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]],
     max_count: int,
 ) -> None:
-    """For the results in 'results', get blame results for each result and then print the results in a human readable format."""
+    """Get blame results for each result and print in human readable format."""
     enriched_test_issues, enriched_shell_issues = add_blames(results)
 
     def _parse_time(ts: Optional[str]) -> datetime:
@@ -371,7 +375,8 @@ def print_issues_with_blames(
                 )
                 print()
                 print(
-                    f"{section_name} — {test_name} ({len(sorted_matches)} issue{'s' if len(sorted_matches) != 1 else ''}):"
+                    f"{section_name} — {test_name} ({len(sorted_matches)}" +
+                    f"issue{'s' if len(sorted_matches) != 1 else ''}):"
                 )
                 print()
                 count = 0
@@ -407,7 +412,7 @@ def print_issues_with_blames(
 def add_blames(
     results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]],
 ) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
-    """Add blame information: check cache in series, then run git blame in parallel for misses."""
+    """Add blame information to input results."""
     test_issues, shell_issues = results
 
     try:
@@ -581,7 +586,8 @@ def cli():
         "-b",
         "--blame",
         action="store_true",
-        help="run an additional git-blame for each infraction, ordering results by timestamp",
+        help="run an additional git-blame for" + 
+            "each infraction, ordering results by timestamp",
     )
 
     parser.add_argument(
@@ -592,14 +598,16 @@ def cli():
         "-m",
         "--max-count",
         type=int,
-        help="maximum infractions to display per test (only applies with --blame; default is 10)",
+        help="maximum infractions to display per test"
+            + "(only applies with --blame; default is 10)",
     )
 
     parser.add_argument(
         "-c",
         "--compare-counts",
         action="store_true",
-        help="show only the differences in infraction counts between the current and last saved tests",
+        help="show only the differences in infraction " + 
+            "counts between the current and last saved tests",
     )
 
     parser.add_argument(
