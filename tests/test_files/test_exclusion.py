@@ -4,12 +4,8 @@ import os
 import shutil
 
 
-# TODO:
-# Use path.join instead of '/' as that is OS dependent.
-
-
 def test_config():
-    test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
+    test_path = os.path.join(run_tests.find_project_root(),"tests/toml_files/default.toml")
 
     assert os.path.isfile(test_path), "default.toml not found"
 
