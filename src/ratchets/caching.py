@@ -2,23 +2,16 @@ import sqlite3
 import argparse
 from datetime import datetime
 from typing import Optional, Dict, List
+from dataclasses import dataclass
 
 
+@dataclass
 class BlameRecord:
-    def __init__(
-        self,
-        line_content: str,
-        line_number: int,
-        timestamp: datetime,
-        file_name: str,
-        author: str,
-    ):
-        """Creates a record based on required fields for compatability with blame cache."""
-        self.line_content = line_content
-        self.line_number = line_number
-        self.timestamp = timestamp
-        self.file_name = file_name
-        self.author = author
+    line_content: str
+    line_number: int
+    timestamp: datetime
+    file_name: str
+    author: str
 
 
 class CachingDatabase:
@@ -59,10 +52,7 @@ class CachingDatabase:
         conn.close()
 
     def create_or_update_blames(self, blames: List[BlameRecord]):
-        """
-        Insert or update a list of blames:
-        if (file_name, line_number) exists, update it; otherwise insert.
-        """
+        """Insert or update a list of blames."""
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -98,10 +88,7 @@ class CachingDatabase:
         conn.close()
 
     def create_or_update_blame(self, blame: BlameRecord):
-        """
-        Insert or update a blame:
-        if (file_name, line_number) exists, update it; otherwise insert.
-        """
+        """Insert or update a blame."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 

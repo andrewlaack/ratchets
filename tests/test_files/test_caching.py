@@ -60,7 +60,7 @@ def test_record_updating():
 
     updated = db.get_blame(line_number, file_name)
 
-    assert updated is not None, "We inserted this record; it should not be 'None'"
+    assert updated is not None, "We inserted this record, it should not be 'None'"
 
     assert updated.author == "Author2", "Single-record update failed"
     assert updated.line_content == "print('Updated!')"
@@ -77,7 +77,7 @@ def test_record_updating():
 
     updated = db.get_blame(line_number, file_name)
 
-    assert updated is not None, "We inserted this record; it should not be 'None'"
+    assert updated is not None, "We inserted this record, it should not be 'None'"
     assert updated.author == "Author3", "Batch-record update failed"
     assert updated.line_content == "print('Batch update!')"
 

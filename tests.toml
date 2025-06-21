@@ -69,7 +69,7 @@ valid = [
 invalid = [
   "def foo():    \n    return 42\t"
 ]
-description = "Trailing whitespace is invisible but can cause noise in diffs and editors; trim trailing spaces/tabs."
+description = "Trailing whitespace is invisible but can cause noise in diffs and editors."
 
 
 [ratchet.regex.ensure_trailing_newline]
@@ -96,7 +96,7 @@ invalid = [
   "def foo():\n    # todo: remove debug code",
   "some_var = 'value'  # FIXME: adjust value later"
 ]
-description = "Ensure no TODO or FIXME comments remain in code; address or file an issue instead of leaving these markers."
+description = "Ensure no TODO or FIXME comments remain in code."
 
 
 [ratchet.shell.line_too_long]
