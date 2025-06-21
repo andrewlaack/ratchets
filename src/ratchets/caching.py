@@ -3,41 +3,7 @@ import argparse
 from datetime import datetime
 from typing import Optional, Dict, List
 
-# TODO:
 
-# improve performance by adding the ability to bulk create.
-# this will stop the commit close cycle which seems to be causing
-# quite a bit of latency.
-
-# Benchmarking on Django code base (shell rule of 80 chars max with total of 3582 blames evaluated):
-
-# Saving each blame one at a time to SQLite DB
-# FIRST RUN: 11m7.030s
-# CACHE RUN: 0m2.409s
-
-# Saving all blames at the end using save blames method
-# but still running one insert at a time just without
-# closing/commiting in between inserts.
-# FIRST RUN: 11m37.642s
-# CACHE RUN: 0m2.550s
-# NO REAL CHANGE.
-
-# Saving all blames at end using save blames method and
-# execute many, synchronous off, and journal off for
-# better perf.
-# FIRST RUN: 11m55.330s
-# CACHE RUN: 0m2.557s
-# This tells me the problem is with git's speed, not
-# SQLite.
-
-# After parallelizing git blames (note: I only have 6 cores)
-# FIRST RUN: 2m18.302s
-# CACHE RUN: 0m3.878s
-
-# After parallelizing git blames and parallelizing file map creation
-# for line lookups when running shell commands
-# FIRST RUN: 2m20.776s
-# CACHE RUN: 0m4.035s
 
 class BlameRecord:
     def __init__(self, line_content: str, line_number: int, timestamp: datetime, file_name: str, author: str):
