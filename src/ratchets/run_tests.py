@@ -1,3 +1,6 @@
+from ratchets.caching import CachingDatabase, BlameRecord
+import queue
+from datetime import datetime
 import os
 import threading
 import pathspec
@@ -14,6 +17,8 @@ EXCLUDED_FILENAME = "ratchet_excluded.txt"
 IGNORE_FILENAME = ".gitignore"
 RATCHET_FILENAME = "ratchet_values.json"
 TEST_FILENAME = "tests.toml"
+CACHING_FILENAME = ".ratchet_blame.db"
+MAX_THREADS = os.cpu_count() or 1
 
 
 def print_diff(current_json: Dict[str, int], previous_json: Dict[str, int]) -> None:
@@ -184,6 +189,7 @@ def evaluate_regex_tests(
     results_lock = threading.Lock()
 
     def eval_thread(test_name: str, rule: Dict[str, Any]):
+        """Evaluate a single regular expression across all specified files."""
         pattern = re.compile(rule["regex"])
         matches = []
 
@@ -236,24 +242,9 @@ def evaluate_shell_tests(
     # as they are used, if they are
     # used.
 
-    file_lines_map: Dict[str, Dict[str, List[int]]] = {}
+    file_strs = list(map(str, files))
 
-    # TODO:
-    # Parallelize map creation; this is heavily I/O bound.
-    # Also, check if this is the best approach. Would it
-    # just be better to run in O(n) given smaller coefficients?
-
-    for file_path in files:
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-                file_map: Dict[str, List[int]] = {}
-                for idx, line in enumerate(lines):
-                    normalized = line.rstrip("\n")
-                    file_map.setdefault(normalized, []).append(idx + 1)
-                file_lines_map[str(file_path)] = file_map
-        except Exception as e:
-            raise Exception(f"Error reading {file_path}: {e}")
+    file_lines_map: Dict[str, Dict[str, List[int]]] = build_file_lines_map(file_strs)
 
     def worker(test_name: str, shell_template: str, file_path: Path):
         """Evaluate an individual shell test for a given file."""
@@ -407,7 +398,7 @@ def print_issues_with_blames(
 def add_blames(
     results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]],
 ) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
-    """Add blame information to each result in the 'results' tuple."""
+    """Add blame information: check cache in series, then run git blame in parallel for misses."""
     test_issues, shell_issues = results
 
     try:
@@ -415,76 +406,119 @@ def add_blames(
     except Exception:
         repo_root = None
 
-    def get_blame_for_line(
-        file_path: str, line_no: Optional[int]
-    ) -> Tuple[Optional[str], Optional[str]]:
-        """Internal method for getting the blame information of a specific LoC."""
-        if repo_root is None:
-            return None, None
-        cmd = ["git", "blame", "-L", f"{line_no},{line_no}", "--porcelain", file_path]
-        try:
-            res = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=repo_root, timeout=5
-            )
-            if res.returncode != 0:
-                return None, None
+    db_path = os.path.join(str(repo_root), CACHING_FILENAME)
+    db = CachingDatabase(db_path)
 
-            author: Optional[str] = None
-            author_time: Optional[str] = None
+    new_records: List[BlameRecord] = []
+    needs_blame: List[Tuple[Dict[str, Any], str, int, str]] = []
 
-            for l in res.stdout.splitlines():
-                if l.startswith("author "):
-                    author = l[len("author ") :].strip()
-                elif l.startswith("author-time "):
-                    try:
-                        ts = int(l[len("author-time ") :].strip())
-                        author_time = datetime.fromtimestamp(ts).isoformat()
-                    except Exception:
-                        author_time = None
-                if author is not None and author_time is not None:
-                    break
-            return author, author_time
-        except Exception:
-            return None, None
-
-    def get_last_commit_for_file(file_path: str) -> Tuple[Optional[str], Optional[str]]:
-        """Internal method to get the most recent commit's information for a file."""
-        if repo_root is None:
-            return None, None
-        cmd = ["git", "log", "-1", "--format=%an;%at", "--", file_path]
-        try:
-            res = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=repo_root, timeout=5
-            )
-            if res.returncode != 0 or not res.stdout.strip():
-                return None, None
-            out = res.stdout.strip()
-            parts = out.split(";", 1)
-            if len(parts) != 2:
-                return None, None
-            author = parts[0].strip()
-            try:
-                ts = int(parts[1].strip())
-                author_time = datetime.fromtimestamp(ts).isoformat()
-            except Exception:
-                author_time = None
-            return author, author_time
-        except Exception:
-            return None, None
+    # serial cache lookup as running this in
+    # parallel imposes too much overhead for the minimal
+    # cache lookup cost.
 
     for issues in (test_issues, shell_issues):
         for test_name, matches in issues.items():
             for match in matches:
                 file_path = match.get("file")
+                line_content = match.get("content")
+                assert line_content is not None
+
                 line_no = match.get("line")
                 if not file_path:
                     continue
-                if line_no is not None:
-                    author, author_time = get_blame_for_line(file_path, line_no)
-                else:
-                    author, author_time = get_last_commit_for_file(file_path)
-                match["blame_author"] = author if author is not None else None
-                match["blame_time"] = author_time if author_time is not None else None
+                if line_no is None:
+                    raise LookupError(f"No line found matching: {line_content}")
+
+                if repo_root is not None:
+                    blame_res: Optional[BlameRecord] = db.get_blame(line_no, file_path)
+                    if blame_res is not None and blame_res.line_content == line_content:
+                        match["blame_author"] = blame_res.author
+                        match["blame_time"] = (
+                            blame_res.timestamp.isoformat()
+                            if isinstance(blame_res.timestamp, datetime)
+                            else str(blame_res.timestamp)
+                        )
+                        continue
+                needs_blame.append((match, file_path, line_no, line_content))
+
+    if needs_blame:
+        task_q = queue.Queue()
+        for item in needs_blame:
+            task_q.put(item)
+
+        def worker():
+            """Lookup"""
+            while True:
+                try:
+                    match, file_path, line_no, line_content = task_q.get(block=False)
+                except queue.Empty:
+                    break
+                author, author_time = None, None
+                if repo_root is not None:
+                    try:
+                        cmd = [
+                            "git",
+                            "blame",
+                            "-L",
+                            f"{line_no},{line_no}",
+                            "--porcelain",
+                            file_path,
+                        ]
+                        res = subprocess.run(
+                            cmd,
+                            capture_output=True,
+                            text=True,
+                            cwd=repo_root,
+                            timeout=5,
+                        )
+                        if res.returncode == 0:
+                            parsed_author = None
+                            parsed_time = None
+                            for l in res.stdout.splitlines():
+                                if l.startswith("author "):
+                                    parsed_author = l[len("author ") :].strip()
+                                elif l.startswith("author-time "):
+                                    ts_int = int(l[len("author-time ") :].strip())
+                                    parsed_time = datetime.fromtimestamp(ts_int)
+                                if (
+                                    parsed_author is not None
+                                    and parsed_time is not None
+                                ):
+                                    break
+                            if parsed_author is not None and parsed_time is not None:
+                                author = parsed_author
+                                author_time = parsed_time.isoformat()
+                                new_records.append(
+                                    BlameRecord(
+                                        line_content=line_content,
+                                        line_number=int(line_no),
+                                        timestamp=parsed_time,
+                                        file_name=file_path,
+                                        author=parsed_author,
+                                    )
+                                )
+                        else:
+                            print(res.stderr)
+                    except Exception:
+                        pass
+                match["blame_author"] = author
+                match["blame_time"] = author_time
+                task_q.task_done()
+
+        num_tasks = task_q.qsize()
+        num_threads = min(MAX_THREADS, num_tasks) if num_tasks > 0 else 0
+        threads = []
+        for _ in range(num_threads):
+            t = threading.Thread(target=worker)
+            t.daemon = True
+            t.start()
+            threads.append(t)
+        task_q.join()
+        for t in threads:
+            t.join()
+
+    if new_records:
+        db.create_or_update_blames(new_records)
 
     return test_issues, shell_issues
 
@@ -542,6 +576,10 @@ def cli():
     )
 
     parser.add_argument(
+        "--clear-cache", action="store_true", help="clear the blame cache"
+    )
+
+    parser.add_argument(
         "-m",
         "--max-count",
         type=int,
@@ -569,6 +607,7 @@ def cli():
     update: bool = args.update_ratchets
     compare_counts: bool = args.compare_counts
     blame: bool = args.blame
+    clear_cache: bool = args.clear_cache
     verbose: bool = args.verbose
     max_count: Optional[int] = args.max_count
     path_files: List[str] = args.files
@@ -584,11 +623,22 @@ def cli():
 
     excludes_path = get_excludes_path()
 
-    mutex_options = [[cmd_mode, regex_mode], [blame, verbose, update, compare_counts]]
+    mutex_options = [
+        [cmd_mode, regex_mode, clear_cache],
+        [blame, verbose, update, compare_counts, clear_cache],
+    ]
 
     for ls in mutex_options:
         if not ls.count(True) <= 1:
             raise Exception("Mutually exclusive options selected.")
+
+    if clear_cache:
+        repo_root = find_project_root()
+        db_path = os.path.join(str(repo_root), CACHING_FILENAME)
+        db = CachingDatabase(db_path)
+        db.clear_cache()
+        print("Cache cleared.")
+        return
 
     if not os.path.isfile(excludes_path):
         with open(excludes_path, "a"):
@@ -636,6 +686,35 @@ def cli():
         print("Previous: " + str(previous_json))
         print("Diffs:")
         print_diff(current_json, previous_json)
+
+
+def process_file(file_path: str) -> Dict[str, List[int]]:
+    """Read a file and build a map."""
+    file_map: Dict[str, List[int]] = {}
+    with open(file_path, "r", encoding="utf-8") as f:
+        for idx, line in enumerate(f, start=1):
+            normalized = line.rstrip("\n")
+            file_map.setdefault(normalized, []).append(idx)
+    return file_map
+
+
+# After comparing this and a parallelized version; this runs faster.
+# The parallel version used threading which imposed an overhead cost
+# so it may be possible to speed this up, but it is not obvious.
+
+
+def build_file_lines_map(files: List[str]) -> Dict[str, Dict[str, List[int]]]:
+    """
+    Process files serially, returning a dict mapping file_path to its line-content map.
+    """
+    file_lines_map: Dict[str, Dict[str, List[int]]] = {}
+    for fp in files:
+        try:
+            file_map = process_file(fp)
+            file_lines_map[fp] = file_map
+        except Exception as e:
+            raise Exception(f"Error reading {fp}: {e}")
+    return file_lines_map
 
 
 if __name__ == "__main__":

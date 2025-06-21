@@ -61,7 +61,21 @@ description = "Bare except clauses catch all exceptions indiscriminately. This c
 
 ```
 
-The valid and invalid entries are not necessary, but we provide a CLI utility, executable with ```python3 -m ratchets.validate```, to verify the regular expressions don't exist in the valid string and do exist in the invalid string. If you are testing a .toml file that is not the repository default, specify it with ```python3 -m ratchets.validate -t FILENAME```. 
+The valid and invalid entries are not necessary, but we provide a CLI utility to verify the regular expressions don't exist in the valid strings and do exist in the invalid strings. This can be ran with:
+
+```bash
+
+python3 -m ratchets.validate
+
+```
+
+If you are testing a .toml file that is not the repository default, it can be specified with:
+
+```bash
+
+python3 -m ratchets.validate -t FILENAME
+
+```
 
 The description entry is also optional, but if provided, it will be included in the output of failing PyTest tests.
 
@@ -90,7 +104,7 @@ This is an example of an `awk` command being used to print each line that has mo
 
 ## Updating Ratchets
 
-Once your rules are defined, you need to count the infractions. This is done by running.
+Once your rules are defined, you need to count the infractions. This is done by running:
 
 ```bash
 python3 -m ratchets -u
@@ -125,7 +139,7 @@ python3 -m ratchets --help
 Where you will see the following help message describing CLI usage for Ratchets:
 
 ```
-usage: run_tests.py [-h] [-t TOML_FILE] [-f FILES [FILES ...]] [-s] [-r] [-v] [-b] [-m MAX_COUNT] [-c] [-u]
+usage: __main__.py [-h] [-t TOML_FILE] [-f FILES [FILES ...]] [-s] [-r] [-v] [-b] [--clear-cache] [-m MAX_COUNT] [-c] [-u]
 
 Python ratchet testing
 
@@ -139,6 +153,7 @@ options:
   -r, --regex-only      run only regex-based tests
   -v, --verbose         run verbose tests, printing each infringing line
   -b, --blame           run an additional git-blame for each infraction, ordering results by timestamp
+  --clear-cache         clear the blame cache
   -m MAX_COUNT, --max-count MAX_COUNT
                         maximum infractions to display per test (only applies with --blame; default is 10)
   -c, --compare-counts  show only the differences in infraction counts between the current and last saved tests
@@ -146,6 +161,8 @@ options:
                         update ratchets_values.json
 ```
 
+**Note:** Ensure you add `.ratchet_blame.db` to your .gitignore file when using the `--blame` option. This is the location Ratchets caches blame evaluations to improve performance for larger codebases.
+ 
 # Testing Ratchets Locally
 
 To run the tests for the source code of Ratchets, you can clone this repository with:

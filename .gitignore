@@ -194,3 +194,5 @@ cython_debug/
 .cursorindexingignore
 notes/
 data/
+testing.db
+.ratchet_blame.db

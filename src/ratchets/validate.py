@@ -23,7 +23,7 @@ def check_valid(regex_tests: Dict[str, Dict[str, Any]]) -> None:
                     raise Exception(f"Regex: {regex} matched {line}")
 
 
-def check_invalid(regex_tests: Dict[str, Dict[str, Any]]) -> int:
+def check_invalid(regex_tests: Dict[str, Dict[str, Any]]) -> None:
     """Given a dict of regex test and strings, returns if all of the regexps match all of their strings."""
     for test in regex_tests:
         regex: str = regex_tests[test]["regex"]
@@ -34,10 +34,9 @@ def check_invalid(regex_tests: Dict[str, Dict[str, Any]]) -> int:
                     found = True
             if not found:
                 raise Exception(f"Regex: {regex} not matched in {validation}")
-    return 0
 
 
-def validate(filename: Optional[str]) -> Optional[bool]:
+def validate(filename: Optional[str]) -> None:
     """Verify the given file's example expressions match the regexps."""
     test_path: str = get_file_path(filename)
     config: Dict[str, Any] = toml.load(test_path)
@@ -47,11 +46,14 @@ def validate(filename: Optional[str]) -> Optional[bool]:
 
     if regex_tests is None:
         print("No regex tests found, there is nothing to validate.")
-        return True
+        return
+
+    # these will throw errors if not valid otherwise simply return.
+    # this allows for stderr to be used, as well as exit
+    # statuses.
 
     check_valid(regex_tests)
     check_invalid(regex_tests)
-    return True
 
 
 if __name__ == "__main__":
