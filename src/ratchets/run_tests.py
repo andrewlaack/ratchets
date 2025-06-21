@@ -621,6 +621,9 @@ def cli():
             if Path(path).suffix == ".py" and Path(path).is_file()
         ]
 
+    if (paths is None or len(paths) == 0) and path_files is not None:
+        raise FileNotFoundError("No .py files found in the specified locations.")
+
     excludes_path = get_excludes_path()
 
     mutex_options = [
