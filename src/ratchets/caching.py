@@ -15,6 +15,21 @@ from typing import Optional, Dict, List
 # FIRST RUN: 11m7.030s
 # CACHE RUN: 0m2.409s
 
+# Saving all blames at the end using save blames method
+# but still running one insert at a time just without
+# closing/commiting in between inserts.
+# FIRST RUN: 11m37.642s
+# CACHE RUN: 0m2.550s
+# NO REAL CHANGE.
+
+# Saving all blames at end using save blames method and
+# execute many, synchronous off, and journal off for
+# better perf.
+# FIRST RUN: 11m55.330s
+# CACHE RUN: 0m2.557s
+# This tells me the problem is with git's speed, not
+# SQLite.
+
 
 class BlameRecord:
     def __init__(self, line_content: str, line_number: int, timestamp: datetime, file_name: str, author: str):
@@ -71,6 +86,9 @@ class CachingDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
+        cursor.execute("PRAGMA journal_mode = OFF")
+        cursor.execute("PRAGMA synchronous = OFF")
+
         upsert_query = '''
             INSERT INTO blames (file_name, line_number, line_content, timestamp, author)
             VALUES (?, ?, ?, ?, ?)
@@ -79,14 +97,16 @@ class CachingDatabase:
                 timestamp = excluded.timestamp,
                 author = excluded.author
         '''
-        for blame in blames:
-            cursor.execute(upsert_query, (
+
+        cursor.executemany(upsert_query, [
+            (
                 blame.file_name,
                 blame.line_number,
                 blame.line_content,
                 blame.timestamp.isoformat(),
                 blame.author
-            ))
+            ) for blame in blames
+        ])
 
         conn.commit()
         cursor.close()

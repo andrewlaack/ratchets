@@ -1,4 +1,5 @@
 from ratchets.caching import CachingDatabase, BlameRecord
+import queue
 from datetime import datetime
 import os
 import threading
@@ -17,6 +18,7 @@ IGNORE_FILENAME = ".gitignore"
 RATCHET_FILENAME = "ratchet_values.json"
 TEST_FILENAME = "tests.toml"
 CACHING_FILENAME = ".ratchet_blame.db"
+MAX_THREADS = 16
 
 
 def print_diff(current_json: Dict[str, int], previous_json: Dict[str, int]) -> None:
@@ -410,40 +412,37 @@ def print_issues_with_blames(
 def add_blames(
     results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]],
 ) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
-    """Add blame information to each result in the 'results' tuple."""
+    """Add blame information to each result in the 'results' tuple, batching new records."""
     test_issues, shell_issues = results
 
     try:
         repo_root: Optional[str] = find_project_root()
     except Exception:
         repo_root = None
-    
 
-    db_path = os.path.join(str(repo_root),  CACHING_FILENAME)
+    db_path = os.path.join(str(repo_root), CACHING_FILENAME)
     db = CachingDatabase(db_path)
 
+    new_records: List[BlameRecord] = []
+
     def get_blame_for_line(
-        file_path: str, line_no: Optional[int], line_content : str
+        file_path: str, line_no: Optional[int], line_content: str
     ) -> Tuple[Optional[str], Optional[str]]:
-        """Internal method for getting the blame information of a specific LoC."""
+        """Internal: get author and timestamp for a line, and if missing or changed, schedule a new BlameRecord."""
         if repo_root is None:
             return None, None
 
-
         if line_no is not None:
-            blame_res : Optional[BlameRecord] = db.get_blame(line_no, file_path)
-            if blame_res is not None:
-                if blame_res.line_content == line_content:
-                    author = blame_res.author
-                    ts = blame_res.timestamp
-                    return (author, str(ts))
+            blame_res: Optional[BlameRecord] = db.get_blame(line_no, file_path)
+            if blame_res is not None and blame_res.line_content == line_content:
+                return blame_res.author, str(blame_res.timestamp)
 
-
+        # Need to run git blame
+        assert line_no is not None
         cmd = ["git", "blame", "-L", f"{line_no},{line_no}", "--porcelain", file_path]
         res = subprocess.run(
             cmd, capture_output=True, text=True, cwd=repo_root, timeout=5
         )
-
         if res.returncode != 0:
             print(res.stderr)
             raise FileNotFoundError("File not found for blaming: is it checked into git?")
@@ -453,17 +452,15 @@ def add_blames(
 
         for l in res.stdout.splitlines():
             if l.startswith("author "):
-                author = l[len("author ") :].strip()
+                author = l[len("author "):].strip()
             elif l.startswith("author-time "):
-                ts = int(l[len("author-time ") :].strip())
-                author_time = datetime.fromtimestamp(ts).isoformat()
+                ts_int = int(l[len("author-time "):].strip())
+                author_time = datetime.fromtimestamp(ts_int).isoformat()
             if author is not None and author_time is not None:
                 break
 
-
-        
-        assert line_no is not None
-        assert author_time is not None
+        if author is None or author_time is None:
+            return None, None
 
         record = BlameRecord(
             line_content=line_content,
@@ -473,52 +470,31 @@ def add_blames(
             author=str(author)
         )
 
-        db.create_or_update_blame(record)
+        new_records.append(record)
 
         return author, author_time
-
-    def get_last_commit_for_file(file_path: str) -> Tuple[Optional[str], Optional[str]]:
-        """Internal method to get the most recent commit's information for a file."""
-        if repo_root is None:
-            return None, None
-        cmd = ["git", "log", "-1", "--format=%an;%at", "--", file_path]
-        try:
-            res = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=repo_root, timeout=5
-            )
-            if res.returncode != 0 or not res.stdout.strip():
-                return None, None
-            out = res.stdout.strip()
-            parts = out.split(";", 1)
-            if len(parts) != 2:
-                return None, None
-            author = parts[0].strip()
-            try:
-                ts = int(parts[1].strip())
-                author_time = datetime.fromtimestamp(ts).isoformat()
-            except Exception:
-                author_time = None
-            return author, author_time
-        except Exception:
-            return None, None
 
     for issues in (test_issues, shell_issues):
         for test_name, matches in issues.items():
             for match in matches:
                 file_path = match.get("file")
-                line_content = match.get('content')
-
+                line_content = match.get("content")
                 assert line_content is not None
 
                 line_no = match.get("line")
                 if not file_path:
                     continue
+
                 if line_no is not None:
                     author, author_time = get_blame_for_line(file_path, line_no, line_content)
                 else:
-                    author, author_time = get_last_commit_for_file(file_path)
-                match["blame_author"] = author if author is not None else None
-                match["blame_time"] = author_time if author_time is not None else None
+                    raise Exception(f"No line found matching: {line_content}")
+
+                match["blame_author"] = author
+                match["blame_time"] = author_time
+
+    if new_records:
+        db.create_or_update_blames(new_records)
 
     return test_issues, shell_issues
 
