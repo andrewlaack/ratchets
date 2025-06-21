@@ -376,7 +376,7 @@ def print_issues_with_blames(
                 print()
                 print(
                     f"{section_name} — {test_name} ({len(sorted_matches)}"
-                    + f"issue{'s' if len(sorted_matches) != 1 else ''}):"
+                    + f" issue{'s' if len(sorted_matches) != 1 else ''}):"
                 )
                 print()
                 count = 0

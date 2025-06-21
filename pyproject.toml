@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ratchets"
-version = "0.2.9"
+version = "0.2.10"
 description = "Ratcheted testing in Python."
 authors = [
   { name = "Andrew Laack", email = "andrew@laack.co" }
