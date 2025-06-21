@@ -1,3 +1,4 @@
+from ratchets.results import TestResult, MatchResult
 from ratchets.caching import CachingDatabase, BlameRecord
 import queue
 from datetime import datetime
@@ -116,7 +117,7 @@ def evaluate_tests(
     regex_only: bool,
     paths: Optional[List[str]],
     override_filter: bool = False,
-) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
+) -> Tuple[Dict[str, TestResult], Dict[str, TestResult]]:
     """Runs all requested tests based on the 'path' .toml file."""
     assert os.path.isfile(path)
 
@@ -134,8 +135,8 @@ def evaluate_tests(
     if not override_filter:
         files = filter_excluded_files(files, excluded_path, ignore_path)
 
-    regex_issues: Dict[str, List[Dict[str, Any]]] = {}
-    shell_issues: Dict[str, List[Dict[str, Any]]] = {}
+    regex_issues: Dict[str, TestResult] = {}
+    shell_issues: Dict[str, TestResult] = {}
 
     if regex_tests and not cmd_only:
         regex_issues = evaluate_regex_tests(files, regex_tests)
@@ -144,15 +145,16 @@ def evaluate_tests(
     return regex_issues, shell_issues
 
 
-def print_issues(issues: Dict[str, List[Dict[str, Any]]]) -> None:
-    """Print the 'issues' dict in a human readable way."""
-    for test_name, matches in issues.items():
-        if matches:
-            print(f"\n{test_name} — matched {len(matches)} issue(s):")
-            for match in matches:
-                file_path = match["file"]
-                line = match.get("line")
-                content = match["content"]
+def print_issues(results: Dict[str, TestResult]) -> None:
+    """Print TestResult objects in a human-readable way."""
+    for test_name, tr in results.items():
+        num = len(tr.matches)
+        if num:
+            print(f"\n{test_name} — matched {num} issue{'s' if num != 1 else ''}:")
+            for m in tr.matches:
+                file_path = m.file
+                line = m.line
+                content = m.content or ""
                 truncated = content if len(content) <= 50 else content[:50] + "..."
                 if line is not None:
                     print(f"  -> {file_path}:{line}: {truncated}")
@@ -181,35 +183,36 @@ def load_ratchet_results(file_location: Optional[str] = None) -> Dict[str, Any]:
 
 def evaluate_regex_tests(
     files: List[Path], test_str: Dict[str, Dict[str, Any]]
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> Dict[str, TestResult]:
     """Evaluate a list of regex tests in parallel with one thread per test."""
-    if len(files) == 0:
+    if not files:
         raise Exception("No files were passed in to be evaluated.")
-    if len(test_str) == 0:
+    if not test_str:
         raise Exception("No regex tests were passed in to be evaluated.")
 
-    results: Dict[str, List[Dict[str, Any]]] = {}
+    results: Dict[str, TestResult] = {}
     threads = []
     results_lock = threading.Lock()
 
     def eval_thread(test_name: str, rule: Dict[str, Any]):
         """Evaluate a single regular expression across all specified files."""
         pattern = re.compile(rule["regex"])
-        matches = []
+        tr = TestResult(name=test_name, matches=[])
 
         for file_path in files:
             with open(file_path, "r", encoding="utf-8") as f:
                 for lineno, line in enumerate(f, 1):
                     if pattern.search(line):
-                        matches.append(
-                            {
-                                "file": str(file_path),
-                                "line": lineno,
-                                "content": line.strip(),
-                            }
+                        mr = MatchResult(
+                            file=str(file_path),
+                            line=lineno,
+                            content=line.strip(),
                         )
+                        tr.matches.append(mr)
+                        # or: tr.add_match(mr) if you’ve defined that
+
         with results_lock:
-            results[test_name] = matches
+            results[test_name] = tr
 
     for test_name, rule in test_str.items():
         thread = threading.Thread(target=eval_thread, args=(test_name, rule))
@@ -231,70 +234,48 @@ def get_ratchet_path() -> str:
 
 def evaluate_shell_tests(
     files: List[Path], test_str: Dict[str, Dict[str, Any]]
-) -> Dict[str, List[Dict[str, Any]]]:
-    """Evaluate all shell tests in parallel across each file."""
-    if len(test_str) == 0:
+) -> Dict[str, TestResult]:
+    """Evaluate all shell tests in parallel."""
+    if not test_str:
         raise Exception("No shell tests passed to evaluation method.")
-    if len(files) == 0:
+    if not files:
         raise Exception("No files passed to evaluation method.")
 
-    results: Dict[str, List[Dict[str, Any]]] = {test_name: [] for test_name in test_str}
+    results: Dict[str, TestResult] = {
+        test_name: TestResult(name=test_name, matches=[]) for test_name in test_str
+    }
     lock = threading.Lock()
 
-    # we track each line number
-    # for duplicates, popping them
-    # as they are used, if they are
-    # used.
-
-    file_strs = list(map(str, files))
-
+    file_strs = [str(p) for p in files]
     file_lines_map: Dict[str, Dict[str, List[int]]] = build_file_lines_map(file_strs)
 
     def worker(test_name: str, shell_template: str, file_path: Path):
-        """Evaluate an individual shell test for a given file."""
         file_str = str(file_path)
         cmd_str = f"echo {file_str} | {shell_template}"
-
         try:
-            result = subprocess.run(
+            res = subprocess.run(
                 cmd_str, shell=True, text=True, capture_output=True, timeout=5
             )
-
-            output = result.stdout.strip()
-
+            output = res.stdout.strip()
             if output:
                 lines = output.splitlines()
-
                 with lock:
+                    tr = results[test_name]
                     for line in lines:
-
                         content = line.rstrip("\n")
                         line_numbers = file_lines_map[file_str].get(content, [])
-
-                        # assume we found the last line this happened,
-                        # remove it, and repeat for each infraction of this line.
-                        # this can be wrong, but it is impossible to
-                        # solve the ambiguity of multiple lines matching,
-                        # but not causing infractions, which can happen
-                        # when shell commands are defined to consider multiple lines,
-                        # as can be the case with ast and such.
-
                         if line_numbers:
-                            ln = line_numbers[0]
-                            line_numbers.pop()
-                            results[test_name].append(
-                                {
-                                    "file": file_str,
-                                    "line": ln,
-                                    "content": content,
-                                }
+                            ln = line_numbers.pop(0)
+                            mr = MatchResult(
+                                file=file_str,
+                                line=ln,
+                                content=content,
                             )
-
+                            tr.matches.append(mr)
         except subprocess.TimeoutExpired:
             raise Exception(f"Timeout while running test '{test_name}' on {file_path}")
 
     threads = []
-
     for test_name, test_dict in test_str.items():
         shell_template = test_dict["command"]
         for file_path in files:
@@ -311,19 +292,21 @@ def evaluate_shell_tests(
 
 
 def results_to_json(
-    results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]],
-) -> str:
-    """Convert test results to a standard JSON formatted string."""
-    test_issues, shell_issues = results
+    results: Tuple[Dict[str, TestResult], Dict[str, TestResult]],
+) -> Dict[str, int]:
+    """
+    Convert test results (regex and shell) to a JSON-serializable dict of counts.
+    """
+    regex_results, shell_results = results
     counts: Dict[str, int] = {}
 
-    for name, matches in test_issues.items():
-        counts[name] = len(matches)
+    for name, tr in regex_results.items():
+        counts[name] = len(tr.matches)
 
-    for name, matches in shell_issues.items():
-        counts[name] = counts.get(name, 0) + len(matches)
+    for name, tr in shell_results.items():
+        counts[name] = counts.get(name, 0) + len(tr.matches)
 
-    return json.dumps(counts, indent=2, sort_keys=True)
+    return counts
 
 
 def update_ratchets(
@@ -347,73 +330,80 @@ def update_ratchets(
 
 
 def print_issues_with_blames(
-    results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]],
+    results: Tuple[Dict[str, TestResult], Dict[str, TestResult]],
     max_count: int,
 ) -> None:
-    """Get blame results for each result and print in human readable format."""
-    enriched_test_issues, enriched_shell_issues = add_blames(results)
+    """
+    Enriches each TestResult with blame info, then prints in human-readable format.
+    Expects:
+      results: (regex_results, shell_results), each Dict[str, TestResult].
+    """
+    # Assume add_blames has been updated to accept and return Dict[str, TestResult]:
+    enriched_regex, enriched_shell = add_blames(results)
 
-    def _parse_time(ts: Optional[str]) -> datetime:
-        """Internal method used to convert formatted strings to datetimes."""
-        if not ts:
-            return datetime.max
+    def _parse_time_obj(ts: Optional[Union[datetime, str]]) -> datetime:
+        """Convert datetime or ISO-string to datetime, with fallback."""
+        if ts is None:
+            return datetime.min
+        if isinstance(ts, datetime):
+            return ts
+        # assume ISO string
         try:
             return datetime.fromisoformat(ts)
         except Exception:
-            return datetime.max
+            return datetime.min
 
-    def _print_section(
-        section_name: str, issues_dict: Dict[str, List[Dict[str, Any]]]
-    ) -> None:
-        """Internal method used to print the results from an individual test."""
-        for test_name, matches in issues_dict.items():
+    def _print_section(section_name: str, results_dict: Dict[str, TestResult]) -> None:
+        for test_name, tr in results_dict.items():
+            matches = tr.matches
             if matches:
+                # sort by blame_time descending: None/invalid → treated as oldest
                 sorted_matches = sorted(
                     matches,
-                    key=lambda m: _parse_time(m.get("blame_time")),
+                    key=lambda m: _parse_time_obj(m.blame_time),
                     reverse=True,
                 )
+                total = len(sorted_matches)
                 print()
                 print(
-                    f"{section_name} — {test_name} ({len(sorted_matches)}"
-                    + f" issue{'s' if len(sorted_matches) != 1 else ''}):"
+                    f"{section_name} — {test_name}" +
+                        f" ({total} issue{'s' if total != 1 else ''}):"
                 )
                 print()
-                count = 0
-
-                for match in sorted_matches:
-                    count += 1
-
-                    if count > max_count:
+                for i, m in enumerate(sorted_matches):
+                    if i >= max_count:
                         break
-
-                    file_path = match.get("file", "<unknown>")
-                    line_no = match.get("line")
-                    content = match.get("content", "").strip()
+                    file_path = m.file or "<unknown>"
+                    line_no = m.line
+                    content = (m.content or "").strip()
                     truncated = content if len(content) <= 80 else content[:80] + "..."
-                    author = match.get("blame_author") or "Unknown"
-                    ts = match.get("blame_time") or "Unknown"
-
+                    author = m.blame_author or "Unknown"
+                    ts_obj = m.blame_time
+                    ts_str = (
+                        ts_obj.isoformat()
+                        if isinstance(ts_obj, datetime)
+                        else (ts_obj or "Unknown")
+                    )
                     if line_no is not None:
-                        print(f"  -> {file_path}:{line_no}  by {author} at {ts}")
+                        print(f"  -> {file_path}:{line_no}  by {author} at {ts_str}")
                         print(f"       {truncated}")
                     else:
                         print(
-                            f"  -> {file_path}  file last updated by {author} at {ts}"
+                        f"  -> {file_path}  file last updated by {author} at {ts_str}"
                         )
                         print(f"       {truncated}")
             else:
                 print(f"\n{section_name} — {test_name}: no issues found.")
 
-    _print_section("Regex Test", enriched_test_issues)
-    _print_section("Shell Test", enriched_shell_issues)
+    _print_section("Regex Test", enriched_regex)
+    _print_section("Shell Test", enriched_shell)
 
 
 def add_blames(
-    results: Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]],
-) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, List[Dict[str, Any]]]]:
-    """Add blame information to input results."""
-    test_issues, shell_issues = results
+    results: Tuple[Dict[str, TestResult], Dict[str, TestResult]],
+) -> Tuple[Dict[str, TestResult], Dict[str, TestResult]]:
+    """Add blame information to TestResult inputs, enriching each MatchResult."""
+    regex_results, shell_results = results
 
     try:
         repo_root: Optional[str] = find_project_root()
@@ -424,20 +414,17 @@ def add_blames(
     db = CachingDatabase(db_path)
 
     new_records: List[BlameRecord] = []
-    needs_blame: List[Tuple[Dict[str, Any], str, int, str]] = []
+    needs_blame: List[Tuple[MatchResult, str, int, str]] = []
 
-    # serial cache lookup as running this in
-    # parallel imposes too much overhead for the minimal
-    # cache lookup cost.
-
-    for issues in (test_issues, shell_issues):
-        for test_name, matches in issues.items():
-            for match in matches:
-                file_path = match.get("file")
-                line_content = match.get("content")
+    # Serial cache lookup
+    for results_dict in (regex_results, shell_results):
+        for test_name, tr in results_dict.items():
+            for m in tr.matches:
+                file_path = m.file
+                line_content = m.content
                 assert line_content is not None
 
-                line_no = match.get("line")
+                line_no = m.line
                 if not file_path:
                     continue
                 if line_no is None:
@@ -446,14 +433,17 @@ def add_blames(
                 if repo_root is not None:
                     blame_res: Optional[BlameRecord] = db.get_blame(line_no, file_path)
                     if blame_res is not None and blame_res.line_content == line_content:
-                        match["blame_author"] = blame_res.author
-                        match["blame_time"] = (
-                            blame_res.timestamp.isoformat()
+                        # Use datetime from cache
+                        m.blame_author = blame_res.author
+                        # blame_res.timestamp is datetime (per CachingDatabase API)
+                        m.blame_time = (
+                            blame_res.timestamp
                             if isinstance(blame_res.timestamp, datetime)
-                            else str(blame_res.timestamp)
+                            else None
                         )
                         continue
-                needs_blame.append((match, file_path, line_no, line_content))
+                # Needs fresh blame
+                needs_blame.append((m, file_path, line_no, line_content))
 
     if needs_blame:
         task_q = queue.Queue()
@@ -461,13 +451,15 @@ def add_blames(
             task_q.put(item)
 
         def worker():
-            """Lookup"""
             while True:
                 try:
-                    match, file_path, line_no, line_content = task_q.get(block=False)
+                    m, file_path, line_no, line_content = task_q.get(block=False)
                 except queue.Empty:
                     break
-                author, author_time = None, None
+
+                author: Optional[str] = None
+                parsed_time: Optional[datetime] = None
+
                 if repo_root is not None:
                     try:
                         cmd = [
@@ -486,42 +478,48 @@ def add_blames(
                             timeout=5,
                         )
                         if res.returncode == 0:
-                            parsed_author = None
-                            parsed_time = None
-                            for l in res.stdout.splitlines():
-                                if l.startswith("author "):
-                                    parsed_author = l[len("author ") :].strip()
-                                elif l.startswith("author-time "):
-                                    ts_int = int(l[len("author-time ") :].strip())
-                                    parsed_time = datetime.fromtimestamp(ts_int)
-                                if (
-                                    parsed_author is not None
-                                    and parsed_time is not None
-                                ):
+                            parsed_author: Optional[str] = None
+                            parsed_ts: Optional[datetime] = None
+                            for line in res.stdout.splitlines():
+                                if line.startswith("author "):
+                                    parsed_author = line[len("author ") :].strip()
+                                elif line.startswith("author-time "):
+                                    try:
+                                        ts_int = int(
+                                            line[len("author-time ") :].strip()
+                                        )
+                                        parsed_ts = datetime.fromtimestamp(ts_int)
+                                    except Exception:
+                                        parsed_ts = None
+                                if parsed_author is not None and parsed_ts is not None:
                                     break
-                            if parsed_author is not None and parsed_time is not None:
+                            if parsed_author is not None and parsed_ts is not None:
                                 author = parsed_author
-                                author_time = parsed_time.isoformat()
+                                parsed_time = parsed_ts
+                                # Record for cache
                                 new_records.append(
                                     BlameRecord(
                                         line_content=line_content,
                                         line_number=int(line_no),
-                                        timestamp=parsed_time,
+                                        timestamp=parsed_ts,
                                         file_name=file_path,
                                         author=parsed_author,
                                     )
                                 )
                         else:
-                            print(res.stderr)
+                            # optionally print stderr
+                            print(res.stderr, end="")
                     except Exception:
                         pass
-                match["blame_author"] = author
-                match["blame_time"] = author_time
+
+                # Set on the MatchResult
+                m.blame_author = author
+                m.blame_time = parsed_time
                 task_q.task_done()
 
         num_tasks = task_q.qsize()
         num_threads = min(MAX_THREADS, num_tasks) if num_tasks > 0 else 0
-        threads = []
+        threads: List[threading.Thread] = []
         for _ in range(num_threads):
             t = threading.Thread(target=worker)
             t.daemon = True
@@ -534,7 +532,7 @@ def add_blames(
     if new_records:
         db.create_or_update_blames(new_records)
 
-    return test_issues, shell_issues
+    return regex_results, shell_results
 
 
 def expand_paths(file_args: Optional[List[str]]) -> Optional[List[str]]:
@@ -689,7 +687,7 @@ def cli():
         print_issues_with_blames(issues, max_count)
     elif compare_counts:
         issues = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
-        current_json = json.loads(results_to_json(issues))
+        current_json = results_to_json(issues)
         previous_json = load_ratchet_results()
         print_diff(current_json, previous_json)
     elif update:
@@ -700,7 +698,7 @@ def cli():
             print_issues(issue_type)
     else:
         issues = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
-        current_json = json.loads(results_to_json(issues))
+        current_json = results_to_json(issues)
         print("Current " + str(current_json))
         previous_json = load_ratchet_results()
         print("Previous: " + str(previous_json))

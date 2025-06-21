@@ -3,6 +3,7 @@ import json
 import toml
 from pathlib import Path
 from typing import Dict, Any, List
+from ratchets.results import MatchResult, TestResult
 
 from .run_tests import (
     evaluate_regex_tests,
@@ -74,27 +75,23 @@ def get_filtered_files() -> List[Path]:
     except Exception:
         return files
 
-
 def get_python_test_matches(
     test_name: str, rule: Dict[str, Any]
-) -> List[Dict[str, Any]]:
-    """Run a regex test for a single rule and return matches."""
-    files = get_filtered_files()
-    results: Dict[str, List[Dict[str, Any]]] = evaluate_regex_tests(
-        files, {test_name: rule}
-    )
-    return results.get(test_name, [])
-
+) -> List[MatchResult]:
+    """Run a regex test for a single rule and return MatchResult objects."""
+    files = get_filtered_files()  # expected to return List[Path] or similar
+    results: Dict[str, TestResult] = evaluate_regex_tests(files, {test_name: rule})
+    tr = results.get(test_name)
+    return tr.matches if tr is not None else []
 
 def get_shell_test_matches(
     test_name: str, test_dict: Dict[str, Any]
-) -> List[Dict[str, Any]]:
-    """Run a shell test for a single rule and return matches."""
+) -> List[MatchResult]:
+    """Run a shell test for a single rule and return MatchResult objects."""
     files = get_filtered_files()
-    results: Dict[str, List[Dict[str, Any]]] = evaluate_shell_tests(
-        files, {test_name: test_dict}
-    )
-    return results.get(test_name, [])
+    results: Dict[str, TestResult] = evaluate_shell_tests(files, {test_name: test_dict})
+    tr = results.get(test_name)
+    return tr.matches if tr is not None else []
 
 
 def check_regex_rule(test_name: str, rule: Dict[str, Any]) -> None:

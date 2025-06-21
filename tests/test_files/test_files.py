@@ -29,8 +29,8 @@ def test_files():
         toml_file, False, False, [filtered2_file], True
     )
 
-    json1 = json.loads(run_tests.results_to_json(exceptions1))
-    json2 = json.loads(run_tests.results_to_json(exceptions2))
+    json1 = run_tests.results_to_json(exceptions1)
+    json2 = run_tests.results_to_json(exceptions2)
 
     exception1_sum = 0
     for key in json1:

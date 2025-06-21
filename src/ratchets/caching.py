@@ -2,23 +2,15 @@ import sqlite3
 import argparse
 from datetime import datetime
 from typing import Optional, Dict, List
+from dataclasses import dataclass
 
-
+@dataclass
 class BlameRecord:
-    def __init__(
-        self,
-        line_content: str,
-        line_number: int,
-        timestamp: datetime,
-        file_name: str,
-        author: str,
-    ):
-        """Creates a record based on required fields for compatability with blame cache."""
-        self.line_content = line_content
-        self.line_number = line_number
-        self.timestamp = timestamp
-        self.file_name = file_name
-        self.author = author
+    line_content: str
+    line_number: int
+    timestamp: datetime
+    file_name: str
+    author: str
 
 
 class CachingDatabase:
