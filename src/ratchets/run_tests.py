@@ -319,6 +319,7 @@ def update_ratchets(
     """Update the current ratchets based on 'test_path'."""
     results = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
     results_json = results_to_json(results)
+    print(results_json)
 
     if override_ratchet_path is None:
         path = get_ratchet_path()
@@ -326,8 +327,7 @@ def update_ratchets(
         path = override_ratchet_path
 
     with open(path, "w") as file:
-        file.writelines(results_json)
-
+        file.write(json.dumps(results_json, indent=2))
 
 def print_issues_with_blames(
     results: Tuple[Dict[str, TestResult], Dict[str, TestResult]],

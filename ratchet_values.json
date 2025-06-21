@@ -1,0 +1,10 @@
+{
+  "lightning": 0,
+  "no_wildcard_imports": 0,
+  "tabs": 0,
+  "exceptions": 0,
+  "ensure_trailing_newline": 0,
+  "trailing_whitespace": 0,
+  "no_todo_comments": 0,
+  "line_too_long": 0
+}
