@@ -416,7 +416,7 @@ def add_blames(
     for results_dict in (regex_results, shell_results):
         for _, tr in results_dict.items():
             for m in tr.matches:
-                file_path = m.file
+                file_path = str(Path(m.file).resolve())
                 line_content = m.content
                 assert line_content is not None
 
