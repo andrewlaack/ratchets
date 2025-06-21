@@ -1,4 +1,5 @@
 from ratchets.caching import CachingDatabase, BlameRecord
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import queue
 from datetime import datetime
 import os
@@ -241,24 +242,10 @@ def evaluate_shell_tests(
     # as they are used, if they are
     # used.
 
-    file_lines_map: Dict[str, Dict[str, List[int]]] = {}
+    file_strs = list(map(str, files))
 
-    # TODO:
-    # Parallelize map creation; this is heavily I/O bound.
-    # Also, check if this is the best approach. Would it
-    # just be better to run in O(n) given smaller coefficients?
+    file_lines_map: Dict[str, Dict[str, List[int]]] = build_file_lines_map(file_strs)
 
-    for file_path in files:
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-                file_map: Dict[str, List[int]] = {}
-                for idx, line in enumerate(lines):
-                    normalized = line.rstrip("\n")
-                    file_map.setdefault(normalized, []).append(idx + 1)
-                file_lines_map[str(file_path)] = file_map
-        except Exception as e:
-            raise Exception(f"Error reading {file_path}: {e}")
 
     def worker(test_name: str, shell_template: str, file_path: Path):
         """Evaluate an individual shell test for a given file."""
@@ -474,6 +461,7 @@ def add_blames(
 
         return author, author_time
 
+    task_q = queue.Queue()
     for issues in (test_issues, shell_issues):
         for test_name, matches in issues.items():
             for match in matches:
@@ -484,14 +472,36 @@ def add_blames(
                 line_no = match.get("line")
                 if not file_path:
                     continue
+                if line_no is None:
+                    raise LookupError(f"No line found matching: {line_content}")
+                task_q.put((match, file_path, line_no, line_content))
 
-                if line_no is not None:
-                    author, author_time = get_blame_for_line(file_path, line_no, line_content)
-                else:
-                    raise Exception(f"No line found matching: {line_content}")
+    def worker():
+        while True:
+            try:
+                match, file_path, line_no, line_content = task_q.get(block=False)
+            except queue.Empty:
+                break
+            try:
+                author, author_time = get_blame_for_line(file_path, line_no, line_content)
+            except Exception:
+                author, author_time = None, None
+            match["blame_author"] = author
+            match["blame_time"] = author_time
+            task_q.task_done()
 
-                match["blame_author"] = author
-                match["blame_time"] = author_time
+    num_tasks = task_q.qsize()
+    num_threads = min(MAX_THREADS, num_tasks) if num_tasks > 0 else 0
+    threads = []
+    for _ in range(num_threads):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    task_q.join()
+    for t in threads:
+        t.join()
 
     if new_records:
         db.create_or_update_blames(new_records)
@@ -646,6 +656,35 @@ def cli():
         print("Previous: " + str(previous_json))
         print("Diffs:")
         print_diff(current_json, previous_json)
+
+
+def process_file(file_path: str) -> Dict[str, List[int]]:
+    """Read a file and build a map."""
+    file_map: Dict[str, List[int]] = {}
+    with open(file_path, "r", encoding="utf-8") as f:
+        for idx, line in enumerate(f, start=1):
+            normalized = line.rstrip("\n")
+            file_map.setdefault(normalized, []).append(idx)
+    return file_map
+
+def build_file_lines_map(files: List[str]) -> Dict[str, Dict[str, List[int]]]:
+    """
+    Process files in parallel, returning a dict mapping file_path to its line-content map.
+    max_workers: number of threads; if None, defaults to min(32, os.cpu_count() + 4).
+    """
+    file_lines_map: Dict[str, Dict[str, List[int]]] = {}
+    # You may choose max_workers based on your I/O vs CPU characteristics
+    with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+        future_to_path = {executor.submit(process_file, fp): fp for fp in files}
+        for future in as_completed(future_to_path):
+            fp = future_to_path[future]
+            try:
+                file_map = future.result()
+                file_lines_map[fp] = file_map
+            except Exception as e:
+                # Decide how to handle errors per file; here we raise with context
+                raise Exception(f"Error reading {fp}: {e}")
+    return file_lines_map
 
 
 if __name__ == "__main__":

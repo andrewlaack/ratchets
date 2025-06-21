@@ -9,7 +9,7 @@ from typing import Optional, Dict, List
 # this will stop the commit close cycle which seems to be causing
 # quite a bit of latency.
 
-# Benchmarking on Django code base (shell rule of 80 chars max with total of XXX blames evaluated):
+# Benchmarking on Django code base (shell rule of 80 chars max with total of 3582 blames evaluated):
 
 # Saving each blame one at a time to SQLite DB
 # FIRST RUN: 11m7.030s
@@ -30,6 +30,14 @@ from typing import Optional, Dict, List
 # This tells me the problem is with git's speed, not
 # SQLite.
 
+# After parallelizing git blames (note: I only have 6 cores)
+# FIRST RUN: 2m18.302s
+# CACHE RUN: 0m3.878s
+
+# After parallelizing git blames and parallelizing file map creation
+# for line lookups when running shell commands
+# FIRST RUN: 2m20.776s
+# CACHE RUN: 0m4.035s
 
 class BlameRecord:
     def __init__(self, line_content: str, line_number: int, timestamp: datetime, file_name: str, author: str):
