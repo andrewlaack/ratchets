@@ -5,7 +5,9 @@ import shutil
 
 
 def test_config():
-    test_path = os.path.join(run_tests.find_project_root(),"tests/toml_files/default.toml")
+    test_path = os.path.join(
+        run_tests.find_project_root(), "tests/toml_files/default.toml"
+    )
 
     assert os.path.isfile(test_path), "default.toml not found"
 
@@ -63,7 +65,7 @@ def test_exclusion():
 
         assert (
             filename in expected_results
-        ), "An additional excluded.txt file was added, but the expected count was not added"
+        ), "An additional excluded.txt file was added, but not reflected"
 
         assert expected_results[filename] == len(
             filtered

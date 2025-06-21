@@ -375,8 +375,8 @@ def print_issues_with_blames(
                 )
                 print()
                 print(
-                    f"{section_name} — {test_name} ({len(sorted_matches)}" +
-                    f"issue{'s' if len(sorted_matches) != 1 else ''}):"
+                    f"{section_name} — {test_name} ({len(sorted_matches)}"
+                    + f"issue{'s' if len(sorted_matches) != 1 else ''}):"
                 )
                 print()
                 count = 0
@@ -586,8 +586,8 @@ def cli():
         "-b",
         "--blame",
         action="store_true",
-        help="run an additional git-blame for" + 
-            "each infraction, ordering results by timestamp",
+        help="run an additional git-blame for"
+        + "each infraction, ordering results by timestamp",
     )
 
     parser.add_argument(
@@ -599,15 +599,15 @@ def cli():
         "--max-count",
         type=int,
         help="maximum infractions to display per test"
-            + "(only applies with --blame; default is 10)",
+        + "(only applies with --blame; default is 10)",
     )
 
     parser.add_argument(
         "-c",
         "--compare-counts",
         action="store_true",
-        help="show only the differences in infraction " + 
-            "counts between the current and last saved tests",
+        help="show only the differences in infraction "
+        + "counts between the current and last saved tests",
     )
 
     parser.add_argument(

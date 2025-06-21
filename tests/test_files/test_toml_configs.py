@@ -16,9 +16,10 @@ import json
 # creates the output json, and verifies there is a default tests.toml file
 
 
-
 def test_config():
-    test_path = os.path.join(run_tests.find_project_root(), "tests/toml_files/default.toml")
+    test_path = os.path.join(
+        run_tests.find_project_root(), "tests/toml_files/default.toml"
+    )
 
     assert os.path.isfile(test_path), "default.toml not found"
 

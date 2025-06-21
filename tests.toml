@@ -1,6 +1,3 @@
-# these will be ran in *parallel
-# (gthreads)
-
 [ratchet.regex.exceptions]
 regex = "except:"
 valid = [
@@ -34,6 +31,20 @@ invalid = ["import pytorch_lightning", "from pytorch_lightning import LightningM
 description = "The standard PyTorch library should be used in lieu of the PyTorch Lightning package."
 
 
+[ratchet.regex.no_wildcard_imports]
+regex = "from\\s+[^\\s]+\\s+import\\s+\\*"
+valid = [
+  "from module import name1, name2",
+  "import module",
+  "from package.subpackage import ClassA"
+]
+invalid = [
+  "from math import *",
+  "from mypkg.utils import *"
+]
+description = "Wildcard imports make it unclear which names are in scope and can cause conflicts. Always import only the explicit names you need."
+
+
 [ratchet.regex.tabs]
 regex = "\\t"
 valid = [
@@ -48,10 +59,34 @@ invalid = [
 ]
 description = "As per the PEP 8 style guide for Python code, spaces are to be used instead of tabs for indentation. To mitigate this issue, run 'black FILENAME' to reformat the file with black, or manually fix the issue and update your editor to replace tabs with space."
 
-# printed text is assumed to be failures
-# each evaluation **must** accept a file path as input
-# these can be tested by running echo FILEPATH | COMMAND
-# these will be ran in parallel
+
+[ratchet.regex.trailing_whitespace]
+regex = "[ \\t]+$"
+valid = [
+  "def foo():\n    return 42",
+  "x = 1  # comment"
+]
+invalid = [
+  "def foo():    \n    return 42\t"
+]
+description = "Trailing whitespace is invisible but can cause noise in diffs and editors; trim trailing spaces/tabs."
+
+
+[ratchet.regex.ensure_trailing_newline]
+regex = "\\Z(?<!\\n)\\Z"
+valid = [
+  "# some code\n\n"
+]
+invalid = [
+  "# code without trailing newline"
+]
+description = "Text files should end with a newline character to satisfy POSIX tools and avoid diff noise."
+
+
+[ratchet.shell.no_todo_comments]
+command = "grep -En '\\bTODO\\b|\\bFIXME\\b'"
+description = "Ensure no TODO or FIXME comments remain; address or file an issue instead of leaving in code."
+
 
 [ratchet.shell.line_too_long]
 command = "xargs -n1 awk 'length($0) > 88'"
