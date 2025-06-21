@@ -24,9 +24,7 @@ pip install pytest
 
 # Usage
 
-First, add `.ratchet_blame.db` to your .gitignore file. This is the location git blames are cached to improve performance for larger codebases.
-
-Then, create a tests.toml file at the root of your repository. See [tests.toml](https://github.com/andrewlaack/ratchets/blob/main/tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
+First, create a tests.toml file at the root of your repository. See [tests.toml](https://github.com/andrewlaack/ratchets/blob/main/tests.toml) for an example of how this should look. There are two primary rule types that can be defined in the tests.toml file. 
 
 ## ratchet.regex
 
@@ -162,6 +160,8 @@ options:
                         update ratchets_values.json
 ```
 
+**Note:** Ensure you add `.ratchet_blame.db` to your .gitignore file after running the `--blame` option. This is the location Ratchets caches blame evaluations to improve performance for larger codebases.
+ 
 # Testing Ratchets Locally
 
 To run the tests for the source code of Ratchets, you can clone this repository with:

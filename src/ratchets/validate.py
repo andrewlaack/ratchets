@@ -51,6 +51,7 @@ def validate(filename: Optional[str]) -> None:
     # these will throw errors if not valid otherwise simply return.
     # this allows for stderr to be used, as well as exit
     # statuses.
+
     check_valid(regex_tests)
     check_invalid(regex_tests)
 

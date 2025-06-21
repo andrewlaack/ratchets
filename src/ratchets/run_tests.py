@@ -1,4 +1,4 @@
-from ratchets.caching import CachingDatabase
+from ratchets.caching import CachingDatabase, BlameRecord
 from datetime import datetime
 import os
 import threading
@@ -431,12 +431,12 @@ def add_blames(
 
 
         if line_no is not None:
-            blame_res = db.get_blame(line_no, file_path)
+            blame_res : Optional[BlameRecord] = db.get_blame(line_no, file_path)
             if blame_res is not None:
-                if blame_res['line_content'] == line_content:
-                    author = blame_res.get('author')
-                    ts = blame_res.get('timestamp')
-                    return (author, ts)
+                if blame_res.line_content == line_content:
+                    author = blame_res.author
+                    ts = blame_res.timestamp
+                    return (author, str(ts))
 
 
         cmd = ["git", "blame", "-L", f"{line_no},{line_no}", "--porcelain", file_path]
@@ -465,8 +465,15 @@ def add_blames(
         assert line_no is not None
         assert author_time is not None
 
-        db.create_or_update_blame(line_content, int(line_no), datetime.fromisoformat(author_time), file_path , str(author))
+        record = BlameRecord(
+            line_content=line_content,
+            line_number=int(line_no),
+            timestamp=datetime.fromisoformat(author_time),
+            file_name=file_path,
+            author=str(author)
+        )
 
+        db.create_or_update_blame(record)
 
         return author, author_time
 

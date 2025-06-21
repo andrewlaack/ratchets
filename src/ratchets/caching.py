@@ -1,7 +1,7 @@
 import sqlite3
 import argparse
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 # TODO:
 
@@ -14,6 +14,17 @@ from typing import Optional, Dict
 # Saving each blame one at a time to SQLite DB
 # FIRST RUN: 11m7.030s
 # CACHE RUN: 0m2.409s
+
+
+class BlameRecord:
+    def __init__(self, line_content: str, line_number: int, timestamp: datetime, file_name: str, author: str):
+        self.line_content = line_content
+        self.line_number = line_number
+        self.timestamp = timestamp
+        self.file_name = file_name
+        self.author = author
+
+
 
 class CachingDatabase:
 
@@ -49,14 +60,42 @@ class CachingDatabase:
         cursor.close()
         conn.close()
 
-    def create_or_update_blame(
-        self,
-        line_content: str,
-        line_number: int,
-        timestamp: datetime,
-        file_name: str,
-        author: str
-    ):
+
+
+    def create_or_update_blames(self, blames: List[BlameRecord]):
+        """
+        Insert or update a list of blames:
+        if (file_name, line_number) exists, update it; otherwise insert.
+        """
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        upsert_query = '''
+            INSERT INTO blames (file_name, line_number, line_content, timestamp, author)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(file_name, line_number) DO UPDATE SET
+                line_content = excluded.line_content,
+                timestamp = excluded.timestamp,
+                author = excluded.author
+        '''
+        for blame in blames:
+            cursor.execute(upsert_query, (
+                blame.file_name,
+                blame.line_number,
+                blame.line_content,
+                blame.timestamp.isoformat(),
+                blame.author
+            ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+
+
+
+    def create_or_update_blame(self, blame : BlameRecord):
         """
         Insert or update a blame:
         if (file_name, line_number) exists, update it; otherwise insert.
@@ -73,18 +112,18 @@ class CachingDatabase:
                 author = excluded.author
         '''
         cursor.execute(upsert_query, (
-            file_name,
-            line_number,
-            line_content,
-            timestamp.isoformat(),
-            author
+            blame.file_name,
+            blame.line_number,
+            blame.line_content,
+            blame.timestamp.isoformat(),
+            blame.author
         ))
 
         conn.commit()
         cursor.close()
         conn.close()
 
-    def get_blame(self, line_number: int, file_name: str) -> Optional[Dict[str, str]]:
+    def get_blame(self, line_number: int, file_name: str) -> Optional[BlameRecord]:
         """
         Lookup the blame for the specified file and line number.
         Returns None if not found, else:
@@ -117,10 +156,13 @@ class CachingDatabase:
         except Exception:
             return None
 
-        return { 'author': str(author), 'timestamp': str(ts), 'line_content': str(line_content)}
+        blame = BlameRecord(line_content, line_number, ts, file_name, author)
+
+        return blame
 
 
 if __name__ == "__main__":
+
     # Simple demo of updated methods
     parser = argparse.ArgumentParser(description="Initialize a caching SQLite database and test blame methods.")
     parser.add_argument("path", help="Path to the SQLite database file.")
@@ -128,22 +170,17 @@ if __name__ == "__main__":
     db = CachingDatabase(args.path)
 
     # Example usage: now must pass author
-    example = {
-        'content': 'test line content',
-        'line_number': 42,
-        'timestamp': datetime.now(),
-        'file_name': 'some_file.txt',
-        'author': 'Alice'
-    }
-    db.create_or_update_blame(
-        example['content'],
-        example['line_number'],
-        example['timestamp'],
-        example['file_name'],
-        example['author']
+    example = BlameRecord(
+        line_content='test line content',
+        line_number=42,
+        timestamp=datetime.now(),
+        file_name='some_file.txt',
+        author='Alice'
     )
+    db.create_or_update_blame(example)
 
-    res = db.get_blame(example['line_number'], example['file_name'])
+    res = db.get_blame(example.line_number, example.file_name)
+
     if res is None:
         print("No record found")
     else:
