@@ -10,7 +10,10 @@ def test_create_new_db():
     """Ensure DB creation when one does not exist works as expected."""
     repo_root = find_project_root()
     db_path = os.path.join(str(repo_root), CACHING_FILENAME)
-    os.remove(db_path)
+    try:
+        os.remove(db_path)
+    except FileNotFoundError:
+        pass
     db = CachingDatabase(db_path)
 
 
