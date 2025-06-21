@@ -562,6 +562,10 @@ def cli():
     )
 
     parser.add_argument(
+        "--clear-cache", action="store_true", help="clear the blame cache"
+    )
+
+    parser.add_argument(
         "-m",
         "--max-count",
         type=int,
@@ -589,6 +593,7 @@ def cli():
     update: bool = args.update_ratchets
     compare_counts: bool = args.compare_counts
     blame: bool = args.blame
+    clear_cache: bool = args.clear_cache
     verbose: bool = args.verbose
     max_count: Optional[int] = args.max_count
     path_files: List[str] = args.files
@@ -604,11 +609,20 @@ def cli():
 
     excludes_path = get_excludes_path()
 
-    mutex_options = [[cmd_mode, regex_mode], [blame, verbose, update, compare_counts]]
+    mutex_options = [[cmd_mode, regex_mode, clear_cache], [blame, verbose, update, compare_counts, clear_cache]]
+
 
     for ls in mutex_options:
         if not ls.count(True) <= 1:
             raise Exception("Mutually exclusive options selected.")
+
+    if clear_cache:
+        repo_root = find_project_root()
+        db_path = os.path.join(str(repo_root), CACHING_FILENAME)
+        db = CachingDatabase(db_path)
+        db.clear_cache()
+        print("Cache cleared.")
+        return
 
     if not os.path.isfile(excludes_path):
         with open(excludes_path, "a"):
@@ -670,10 +684,8 @@ def process_file(file_path: str) -> Dict[str, List[int]]:
 def build_file_lines_map(files: List[str]) -> Dict[str, Dict[str, List[int]]]:
     """
     Process files in parallel, returning a dict mapping file_path to its line-content map.
-    max_workers: number of threads; if None, defaults to min(32, os.cpu_count() + 4).
     """
     file_lines_map: Dict[str, Dict[str, List[int]]] = {}
-    # You may choose max_workers based on your I/O vs CPU characteristics
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
         future_to_path = {executor.submit(process_file, fp): fp for fp in files}
         for future in as_completed(future_to_path):
@@ -682,7 +694,6 @@ def build_file_lines_map(files: List[str]) -> Dict[str, Dict[str, List[int]]]:
                 file_map = future.result()
                 file_lines_map[fp] = file_map
             except Exception as e:
-                # Decide how to handle errors per file; here we raise with context
                 raise Exception(f"Error reading {fp}: {e}")
     return file_lines_map
 

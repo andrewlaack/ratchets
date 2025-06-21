@@ -188,6 +188,16 @@ class CachingDatabase:
 
         return blame
 
+    def clear_cache(self) -> None:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM blames")
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+
+
 
 if __name__ == "__main__":
 
