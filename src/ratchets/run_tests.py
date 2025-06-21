@@ -209,7 +209,6 @@ def evaluate_regex_tests(
                             content=line.strip(),
                         )
                         tr.matches.append(mr)
-                        # or: tr.add_match(mr) if you’ve defined that
 
         with results_lock:
             results[test_name] = tr
@@ -319,7 +318,6 @@ def update_ratchets(
     """Update the current ratchets based on 'test_path'."""
     results = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
     results_json = results_to_json(results)
-    print(results_json)
 
     if override_ratchet_path is None:
         path = get_ratchet_path()
@@ -328,6 +326,7 @@ def update_ratchets(
 
     with open(path, "w") as file:
         file.write(json.dumps(results_json, indent=2))
+
 
 def print_issues_with_blames(
     results: Tuple[Dict[str, TestResult], Dict[str, TestResult]],
@@ -338,7 +337,6 @@ def print_issues_with_blames(
     Expects:
       results: (regex_results, shell_results), each Dict[str, TestResult].
     """
-    # Assume add_blames has been updated to accept and return Dict[str, TestResult]:
     enriched_regex, enriched_shell = add_blames(results)
 
     def _parse_time_obj(ts: Optional[Union[datetime, str]]) -> datetime:
@@ -347,7 +345,6 @@ def print_issues_with_blames(
             return datetime.min
         if isinstance(ts, datetime):
             return ts
-        # assume ISO string
         try:
             return datetime.fromisoformat(ts)
         except Exception:
@@ -357,7 +354,6 @@ def print_issues_with_blames(
         for test_name, tr in results_dict.items():
             matches = tr.matches
             if matches:
-                # sort by blame_time descending: None/invalid → treated as oldest
                 sorted_matches = sorted(
                     matches,
                     key=lambda m: _parse_time_obj(m.blame_time),
@@ -366,8 +362,8 @@ def print_issues_with_blames(
                 total = len(sorted_matches)
                 print()
                 print(
-                    f"{section_name} — {test_name}" +
-                        f" ({total} issue{'s' if total != 1 else ''}):"
+                    f"{section_name} — {test_name}"
+                    + f" ({total} issue{'s' if total != 1 else ''}):"
                 )
                 print()
                 for i, m in enumerate(sorted_matches):
@@ -389,7 +385,8 @@ def print_issues_with_blames(
                         print(f"       {truncated}")
                     else:
                         print(
-                        f"  -> {file_path}  file last updated by {author} at {ts_str}"
+                            f"  -> {file_path}  file last " +
+                                    "updated by {author} at {ts_str}"
                         )
                         print(f"       {truncated}")
             else:
@@ -416,9 +413,8 @@ def add_blames(
     new_records: List[BlameRecord] = []
     needs_blame: List[Tuple[MatchResult, str, int, str]] = []
 
-    # Serial cache lookup
     for results_dict in (regex_results, shell_results):
-        for test_name, tr in results_dict.items():
+        for _, tr in results_dict.items():
             for m in tr.matches:
                 file_path = m.file
                 line_content = m.content
@@ -433,16 +429,13 @@ def add_blames(
                 if repo_root is not None:
                     blame_res: Optional[BlameRecord] = db.get_blame(line_no, file_path)
                     if blame_res is not None and blame_res.line_content == line_content:
-                        # Use datetime from cache
                         m.blame_author = blame_res.author
-                        # blame_res.timestamp is datetime (per CachingDatabase API)
                         m.blame_time = (
                             blame_res.timestamp
                             if isinstance(blame_res.timestamp, datetime)
                             else None
                         )
                         continue
-                # Needs fresh blame
                 needs_blame.append((m, file_path, line_no, line_content))
 
     if needs_blame:
@@ -496,7 +489,6 @@ def add_blames(
                             if parsed_author is not None and parsed_ts is not None:
                                 author = parsed_author
                                 parsed_time = parsed_ts
-                                # Record for cache
                                 new_records.append(
                                     BlameRecord(
                                         line_content=line_content,
@@ -507,12 +499,10 @@ def add_blames(
                                     )
                                 )
                         else:
-                            # optionally print stderr
                             print(res.stderr, end="")
                     except Exception:
                         pass
 
-                # Set on the MatchResult
                 m.blame_author = author
                 m.blame_time = parsed_time
                 task_q.task_done()
@@ -692,6 +682,7 @@ def cli():
         print_diff(current_json, previous_json)
     elif update:
         update_ratchets(test_path, cmd_mode, regex_mode, paths)
+        print("Ratchets updated successfully.")
     elif verbose:
         issues = evaluate_tests(test_path, cmd_mode, regex_mode, paths)
         for issue_type in issues:
@@ -716,15 +707,13 @@ def process_file(file_path: str) -> Dict[str, List[int]]:
     return file_map
 
 
-# After comparing this and a parallelized version; this runs faster.
+# After comparing this and a parallelized version, this runs faster.
 # The parallel version used threading which imposed an overhead cost
 # so it may be possible to speed this up, but it is not obvious.
 
 
 def build_file_lines_map(files: List[str]) -> Dict[str, Dict[str, List[int]]]:
-    """
-    Process files serially, returning a dict mapping file_path to its line-content map.
-    """
+    """Process files serially, returning a dict with line contents."""
     file_lines_map: Dict[str, Dict[str, List[int]]] = {}
     for fp in files:
         try:

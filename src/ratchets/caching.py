@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional, Dict, List
 from dataclasses import dataclass
 
+
 @dataclass
 class BlameRecord:
     line_content: str
@@ -51,10 +52,7 @@ class CachingDatabase:
         conn.close()
 
     def create_or_update_blames(self, blames: List[BlameRecord]):
-        """
-        Insert or update a list of blames:
-        if (file_name, line_number) exists, update it; otherwise insert.
-        """
+        """Insert or update a list of blames."""
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -90,10 +88,7 @@ class CachingDatabase:
         conn.close()
 
     def create_or_update_blame(self, blame: BlameRecord):
-        """
-        Insert or update a blame:
-        if (file_name, line_number) exists, update it; otherwise insert.
-        """
+        """Insert or update a blame."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 

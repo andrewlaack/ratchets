@@ -75,14 +75,14 @@ def get_filtered_files() -> List[Path]:
     except Exception:
         return files
 
-def get_python_test_matches(
-    test_name: str, rule: Dict[str, Any]
-) -> List[MatchResult]:
+
+def get_python_test_matches(test_name: str, rule: Dict[str, Any]) -> List[MatchResult]:
     """Run a regex test for a single rule and return MatchResult objects."""
     files = get_filtered_files()  # expected to return List[Path] or similar
     results: Dict[str, TestResult] = evaluate_regex_tests(files, {test_name: rule})
     tr = results.get(test_name)
     return tr.matches if tr is not None else []
+
 
 def get_shell_test_matches(
     test_name: str, test_dict: Dict[str, Any]
