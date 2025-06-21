@@ -3,7 +3,7 @@ from ratchets.abstracted_tests import find_project_root
 import os
 from datetime import datetime
 
-CACHING_FILENAME = ".ratchet_blame.db"
+CACHING_FILENAME = "tests/test_files/temp_ratchet_blame.db"
 
 
 def test_create_new_db():
