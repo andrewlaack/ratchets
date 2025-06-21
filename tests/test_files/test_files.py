@@ -5,10 +5,7 @@ import json
 
 
 def test_files():
-    """Tests the functionallity of .toml and file specification."""
-
-    # directory: Union[str, Path], paths: Optional[List[str]]
-    # ) -> List[Path]:
+    """Tests the functionality of .toml and file specification."""
 
     proj_root = run_tests.find_project_root()
 
@@ -43,10 +40,12 @@ def test_files():
     for key in json2:
         exception2_sum += json2[key]
 
-    if exception2_sum != 8:
-        raise Exception(f"Incorrect number of infractions counted for {filtered2_file}")
-    if exception1_sum != 6:
-        raise Exception(f"Incorrect number of infractions counted for {filtered1_file}")
+    assert (
+        exception2_sum == 8
+    ), f"Incorrect number of infractions counted for {filtered2_file}"
+    assert (
+        exception1_sum == 6
+    ), f"Incorrect number of infractions counted for {filtered1_file}"
 
 
 if __name__ == "__main__":

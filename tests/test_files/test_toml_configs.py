@@ -19,14 +19,13 @@ import json
 def test_config():
     test_path = run_tests.get_file_path(None)
 
-    if not os.path.isfile(test_path):
-        raise Exception("tests.toml not found")
+    assert os.path.isfile(test_path), "tests.toml not found"
 
     try:
         issues = run_tests.evaluate_tests(test_path, True, True, None)
         run_tests.update_ratchets(test_path, True, True, None)
     except Exception as e:
-        raise Exception(f"Unable to update ratchets using 'tests.toml': {e}")
+        assert False, f"Unable to update ratchets using 'tests.toml': {e}"
 
 
 def test_formatting():
@@ -41,10 +40,11 @@ def test_formatting():
                 full_path = os.path.abspath(os.path.join(toml_file_directory, filename))
                 run_tests.evaluate_tests(full_path, True, True, None)
             except Exception as e:
-                if not isinstance(e, toml.TomlDecodeError):
-                    raise Exception(f"Expected TomlDecodeError, got {type(e)}: {e}")
+                assert isinstance(
+                    e, toml.TomlDecodeError
+                ), f"Expected TomlDecodeError, got {type(e)}: {e}"
             else:
-                raise Exception(f"Expected error to be thrown for invalid toml file.")
+                assert False, "Expected error to be thrown for invalid toml file."
 
         else:
             full_path = os.path.abspath(os.path.join(toml_file_directory, filename))
@@ -68,10 +68,9 @@ def verify_updating():
     current_json: Dict[str, Any] = json.loads(run_tests.results_to_json(issues))
     previous_json: Dict[str, Any] = run_tests.load_ratchet_results()
 
-    if current_json != previous_json:
-        raise Exception(
-            "JSON should be identical when running evals and updating ratchets."
-        )
+    assert (
+        current_json == previous_json
+    ), "JSON should be identical when running evals and updating ratchets."
 
 
 # test how things behave when ratchet_values.json does not exist
@@ -83,16 +82,16 @@ def test_ratchet_excluded_missing():
         try:
             os.remove(ratchet_path)
         except Exception as e:
-            raise Exception("Unable to delete ratchet_values.json")
+            assert False, "Unable to delete ratchet_values.json"
 
     test_path = run_tests.get_file_path(None)
 
     try:
         previous = run_tests.load_ratchet_results()
     except Exception:
-        raise Exception(
-            "If ratchet_values.json does not exist, we don't throw, assume all 0's"
-        )
+        assert (
+            False
+        ), "If ratchet_values.json does not exist, we don't throw, assume all 0's"
 
     issues = run_tests.evaluate_tests(test_path, True, True, None)
 

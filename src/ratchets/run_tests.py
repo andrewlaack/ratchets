@@ -1,5 +1,4 @@
 from ratchets.caching import CachingDatabase, BlameRecord
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import queue
 from datetime import datetime
 import os
@@ -19,7 +18,7 @@ IGNORE_FILENAME = ".gitignore"
 RATCHET_FILENAME = "ratchet_values.json"
 TEST_FILENAME = "tests.toml"
 CACHING_FILENAME = ".ratchet_blame.db"
-MAX_THREADS = os.cpu_count()
+MAX_THREADS = os.cpu_count() or 1
 
 
 def print_diff(current_json: Dict[str, int], previous_json: Dict[str, int]) -> None:
@@ -190,6 +189,7 @@ def evaluate_regex_tests(
     results_lock = threading.Lock()
 
     def eval_thread(test_name: str, rule: Dict[str, Any]):
+        """Evaluate a single regular expression across all specified files."""
         pattern = re.compile(rule["regex"])
         matches = []
 
@@ -245,7 +245,6 @@ def evaluate_shell_tests(
     file_strs = list(map(str, files))
 
     file_lines_map: Dict[str, Dict[str, List[int]]] = build_file_lines_map(file_strs)
-
 
     def worker(test_name: str, shell_template: str, file_path: Path):
         """Evaluate an individual shell test for a given file."""
@@ -413,7 +412,7 @@ def add_blames(
     new_records: List[BlameRecord] = []
     needs_blame: List[Tuple[Dict[str, Any], str, int, str]] = []
 
-    # serial cache lookup as running this in 
+    # serial cache lookup as running this in
     # parallel imposes too much overhead for the minimal
     # cache lookup cost.
 
@@ -434,7 +433,11 @@ def add_blames(
                     blame_res: Optional[BlameRecord] = db.get_blame(line_no, file_path)
                     if blame_res is not None and blame_res.line_content == line_content:
                         match["blame_author"] = blame_res.author
-                        match["blame_time"] = blame_res.timestamp.isoformat() if isinstance(blame_res.timestamp, datetime) else str(blame_res.timestamp)
+                        match["blame_time"] = (
+                            blame_res.timestamp.isoformat()
+                            if isinstance(blame_res.timestamp, datetime)
+                            else str(blame_res.timestamp)
+                        )
                         continue
                 needs_blame.append((match, file_path, line_no, line_content))
 
@@ -444,6 +447,7 @@ def add_blames(
             task_q.put(item)
 
         def worker():
+            """Lookup"""
             while True:
                 try:
                     match, file_path, line_no, line_content = task_q.get(block=False)
@@ -452,20 +456,34 @@ def add_blames(
                 author, author_time = None, None
                 if repo_root is not None:
                     try:
-                        cmd = ["git", "blame", "-L", f"{line_no},{line_no}", "--porcelain", file_path]
+                        cmd = [
+                            "git",
+                            "blame",
+                            "-L",
+                            f"{line_no},{line_no}",
+                            "--porcelain",
+                            file_path,
+                        ]
                         res = subprocess.run(
-                            cmd, capture_output=True, text=True, cwd=repo_root, timeout=5
+                            cmd,
+                            capture_output=True,
+                            text=True,
+                            cwd=repo_root,
+                            timeout=5,
                         )
                         if res.returncode == 0:
                             parsed_author = None
                             parsed_time = None
                             for l in res.stdout.splitlines():
                                 if l.startswith("author "):
-                                    parsed_author = l[len("author "):].strip()
+                                    parsed_author = l[len("author ") :].strip()
                                 elif l.startswith("author-time "):
-                                    ts_int = int(l[len("author-time "):].strip())
+                                    ts_int = int(l[len("author-time ") :].strip())
                                     parsed_time = datetime.fromtimestamp(ts_int)
-                                if parsed_author is not None and parsed_time is not None:
+                                if (
+                                    parsed_author is not None
+                                    and parsed_time is not None
+                                ):
                                     break
                             if parsed_author is not None and parsed_time is not None:
                                 author = parsed_author
@@ -476,7 +494,7 @@ def add_blames(
                                         line_number=int(line_no),
                                         timestamp=parsed_time,
                                         file_name=file_path,
-                                        author=parsed_author
+                                        author=parsed_author,
                                     )
                                 )
                         else:
@@ -605,8 +623,10 @@ def cli():
 
     excludes_path = get_excludes_path()
 
-    mutex_options = [[cmd_mode, regex_mode, clear_cache], [blame, verbose, update, compare_counts, clear_cache]]
-
+    mutex_options = [
+        [cmd_mode, regex_mode, clear_cache],
+        [blame, verbose, update, compare_counts, clear_cache],
+    ]
 
     for ls in mutex_options:
         if not ls.count(True) <= 1:
@@ -677,9 +697,11 @@ def process_file(file_path: str) -> Dict[str, List[int]]:
             file_map.setdefault(normalized, []).append(idx)
     return file_map
 
+
 # After comparing this and a parallelized version; this runs faster.
 # The parallel version used threading which imposed an overhead cost
 # so it may be possible to speed this up, but it is not obvious.
+
 
 def build_file_lines_map(files: List[str]) -> Dict[str, Dict[str, List[int]]]:
     """

@@ -4,15 +4,21 @@ from datetime import datetime
 from typing import Optional, Dict, List
 
 
-
 class BlameRecord:
-    def __init__(self, line_content: str, line_number: int, timestamp: datetime, file_name: str, author: str):
+    def __init__(
+        self,
+        line_content: str,
+        line_number: int,
+        timestamp: datetime,
+        file_name: str,
+        author: str,
+    ):
+        """Creates a record based on required fields for compatability with blame cache."""
         self.line_content = line_content
         self.line_number = line_number
         self.timestamp = timestamp
         self.file_name = file_name
         self.author = author
-
 
 
 class CachingDatabase:
@@ -27,7 +33,8 @@ class CachingDatabase:
         conn = sqlite3.connect(path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS blames (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 file_name TEXT,
@@ -37,19 +44,19 @@ class CachingDatabase:
                 author TEXT,
                 UNIQUE(file_name, line_number)
             )
-        ''')
+        """
+        )
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_blame_file_line
             ON blames(file_name, line_number)
-        ''')
-
+        """
+        )
 
         conn.commit()
         cursor.close()
         conn.close()
-
-
 
     def create_or_update_blames(self, blames: List[BlameRecord]):
         """
@@ -63,33 +70,34 @@ class CachingDatabase:
         cursor.execute("PRAGMA journal_mode = OFF")
         cursor.execute("PRAGMA synchronous = OFF")
 
-        upsert_query = '''
+        upsert_query = """
             INSERT INTO blames (file_name, line_number, line_content, timestamp, author)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(file_name, line_number) DO UPDATE SET
                 line_content = excluded.line_content,
                 timestamp = excluded.timestamp,
                 author = excluded.author
-        '''
+        """
 
-        cursor.executemany(upsert_query, [
-            (
-                blame.file_name,
-                blame.line_number,
-                blame.line_content,
-                blame.timestamp.isoformat(),
-                blame.author
-            ) for blame in blames
-        ])
+        cursor.executemany(
+            upsert_query,
+            [
+                (
+                    blame.file_name,
+                    blame.line_number,
+                    blame.line_content,
+                    blame.timestamp.isoformat(),
+                    blame.author,
+                )
+                for blame in blames
+            ],
+        )
 
         conn.commit()
         cursor.close()
         conn.close()
 
-
-
-
-    def create_or_update_blame(self, blame : BlameRecord):
+    def create_or_update_blame(self, blame: BlameRecord):
         """
         Insert or update a blame:
         if (file_name, line_number) exists, update it; otherwise insert.
@@ -97,21 +105,24 @@ class CachingDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        upsert_query = '''
+        upsert_query = """
             INSERT INTO blames (file_name, line_number, line_content, timestamp, author)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(file_name, line_number) DO UPDATE SET
                 line_content = excluded.line_content,
                 timestamp = excluded.timestamp,
                 author = excluded.author
-        '''
-        cursor.execute(upsert_query, (
-            blame.file_name,
-            blame.line_number,
-            blame.line_content,
-            blame.timestamp.isoformat(),
-            blame.author
-        ))
+        """
+        cursor.execute(
+            upsert_query,
+            (
+                blame.file_name,
+                blame.line_number,
+                blame.line_content,
+                blame.timestamp.isoformat(),
+                blame.author,
+            ),
+        )
 
         conn.commit()
         cursor.close()
@@ -130,11 +141,11 @@ class CachingDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        select_query = '''
+        select_query = """
             SELECT author, timestamp, line_content
               FROM blames
              WHERE file_name = ? AND line_number = ?
-        '''
+        """
         cursor.execute(select_query, (file_name, line_number))
         row = cursor.fetchone()
 
@@ -155,37 +166,10 @@ class CachingDatabase:
         return blame
 
     def clear_cache(self) -> None:
+        """Clear the local blame caching DB."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM blames")
         conn.commit()
         cursor.close()
         conn.close()
-
-
-
-
-if __name__ == "__main__":
-
-    # Simple demo of updated methods
-    parser = argparse.ArgumentParser(description="Initialize a caching SQLite database and test blame methods.")
-    parser.add_argument("path", help="Path to the SQLite database file.")
-    args = parser.parse_args()
-    db = CachingDatabase(args.path)
-
-    # Example usage: now must pass author
-    example = BlameRecord(
-        line_content='test line content',
-        line_number=42,
-        timestamp=datetime.now(),
-        file_name='some_file.txt',
-        author='Alice'
-    )
-    db.create_or_update_blame(example)
-
-    res = db.get_blame(example.line_number, example.file_name)
-
-    if res is None:
-        print("No record found")
-    else:
-        print("Fetched blame:", res)

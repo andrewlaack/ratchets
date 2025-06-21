@@ -33,7 +33,7 @@ def test_shell_rule(test_name: str, test_dict: dict) -> None:
 #             errors.append(f"{test_name}")
 #     if errors:
 #         pytest.fail(" - ".join(errors) + "\n\n" + "\n\n".join(descriptions))
-# 
+#
 # def test_all_shell_rules():
 #     """Runs a test for all shell rules."""
 #     errors = []

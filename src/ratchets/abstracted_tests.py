@@ -107,13 +107,14 @@ def check_regex_rule(test_name: str, rule: Dict[str, Any]) -> None:
     baseline_counts = get_baseline_counts()
     baseline_count = baseline_counts.get(test_name, 0)
     if current_count > baseline_count:
-        description = rule.get('description')
+        description = rule.get("description")
         if description is None:
             description = ""
 
         raise Exception(
             f"'{test_name}' increased from {baseline_count} to {current_count}"
-            +  ". " + str(description)
+            + ". "
+            + str(description)
         )
 
 
@@ -127,10 +128,11 @@ def check_shell_rule(test_name: str, test_dict: Dict[str, Any]) -> None:
     baseline_counts = get_baseline_counts()
     baseline_count = baseline_counts.get(test_name, 0)
     if current_count > baseline_count:
-        description = test_dict.get('description')
+        description = test_dict.get("description")
         if description is None:
             description = ""
         raise Exception(
             f"'{test_name}' increased from {baseline_count} to {current_count}"
-            + ". " + str(description)
+            + ". "
+            + str(description)
         )
