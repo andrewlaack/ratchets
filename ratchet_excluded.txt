@@ -1,2 +1,1 @@
-*1*
-ex_dir/
+file_spec_files

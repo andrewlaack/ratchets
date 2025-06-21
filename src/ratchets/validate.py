@@ -24,7 +24,7 @@ def check_valid(regex_tests: Dict[str, Dict[str, Any]]) -> None:
 
 
 def check_invalid(regex_tests: Dict[str, Dict[str, Any]]) -> None:
-    """Given a dict of regex test and strings, returns if all of the regexps match all of their strings."""
+    """Check if all of the regexps match all of their strings."""
     for test in regex_tests:
         regex: str = regex_tests[test]["regex"]
         for validation in regex_tests[test]["invalid"]:

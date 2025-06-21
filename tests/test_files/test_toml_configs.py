@@ -17,13 +17,21 @@ import json
 
 
 def test_config():
-    test_path = run_tests.get_file_path(None)
+    test_path = os.path.join(
+        run_tests.find_project_root(), "tests/toml_files/default.toml"
+    )
 
-    assert os.path.isfile(test_path), "tests.toml not found"
+    assert os.path.isfile(test_path), "default.toml not found"
 
     try:
         issues = run_tests.evaluate_tests(test_path, True, True, None)
-        run_tests.update_ratchets(test_path, True, True, None)
+        run_tests.update_ratchets(
+            test_path,
+            True,
+            True,
+            None,
+            run_tests.find_project_root() + "/tests/test_files/temp_ratchet1.json",
+        )
     except Exception as e:
         assert False, f"Unable to update ratchets using 'tests.toml': {e}"
 
@@ -58,8 +66,15 @@ def test_formatting():
 
 # ensure updated values match subsequent runs.
 def verify_updating():
-    test_path = run_tests.get_file_path(None)
-    run_tests.update_ratchets(test_path, True, True, None)
+    test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
+
+    run_tests.update_ratchets(
+        test_path,
+        True,
+        True,
+        None,
+        run_tests.find_project_root() + "/tests/test_files/temp_ratchet2.json",
+    )
 
     # if one is false then the results are guaranteed
     # to be either the same or lower.
@@ -84,7 +99,7 @@ def test_ratchet_excluded_missing():
         except Exception as e:
             assert False, "Unable to delete ratchet_values.json"
 
-    test_path = run_tests.get_file_path(None)
+    test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
 
     try:
         previous = run_tests.load_ratchet_results()
@@ -96,7 +111,13 @@ def test_ratchet_excluded_missing():
     issues = run_tests.evaluate_tests(test_path, True, True, None)
 
     # writes back json file
-    run_tests.update_ratchets(test_path, True, True, None)
+    run_tests.update_ratchets(
+        test_path,
+        True,
+        True,
+        None,
+        run_tests.find_project_root() + "/tests/test_files/temp_ratchet3.json",
+    )
 
     return
 

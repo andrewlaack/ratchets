@@ -1,28 +1,27 @@
 from ratchets import run_tests
 from ratchets import abstracted_tests
 import os
-import toml
-from typing import Dict, Any
-import json
 import shutil
 
 
 def test_config():
-    test_path = run_tests.get_file_path(None)
+    test_path = os.path.join(
+        run_tests.find_project_root(), "tests/toml_files/default.toml"
+    )
 
-    assert os.path.isfile(test_path), "tests.toml not found"
+    assert os.path.isfile(test_path), "default.toml not found"
 
     try:
         issues = run_tests.evaluate_tests(test_path, True, True, None)
-        run_tests.update_ratchets(test_path, True, True, None)
+        run_tests.update_ratchets(
+            test_path,
+            True,
+            True,
+            None,
+            run_tests.find_project_root() + "/tests/test_files/temp_ratchet1.json",
+        )
     except Exception as e:
         assert False, f"Unable to update ratchets using 'tests.toml': {e}"
-
-
-# TODO:
-# add gitignore checks.
-# gitignore is handled the same way as
-# the excluded file, but should be checked too
 
 
 def test_exclusion():
@@ -34,7 +33,10 @@ def test_exclusion():
     test_py_dir = os.path.abspath(
         os.path.join(current_file_directory, "..", "python_files")
     )
-    exclusion_path = run_tests.get_excludes_path()
+    exclusion_path = (
+        run_tests.find_project_root() + "/tests/exclusion_files/ratchet_excluded.txt"
+    )
+
     root = run_tests.find_project_root()
     ignore_path = os.path.join(root, ".gitignore")
 
@@ -63,7 +65,7 @@ def test_exclusion():
 
         assert (
             filename in expected_results
-        ), "An additional excluded.txt file was added, but the corresponding expected count was not added to the dict"
+        ), "An additional excluded.txt file was added, but not reflected"
 
         assert expected_results[filename] == len(
             filtered
@@ -71,7 +73,7 @@ def test_exclusion():
 
     assert count == len(
         expected_results
-    ), "There is an entry in the expected_results dictionary that does not correspond with a file tested"
+    ), "There is an extra entry in the expected_results dictionary"
 
 
 if __name__ == "__main__":
