@@ -15,6 +15,9 @@ import json
 # this creates a ratchet_excluded.txt file,
 # creates the output json, and verifies there is a default tests.toml file
 
+# TODO:
+# Replace '/' paths with os.join
+
 
 def test_config():
     test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
@@ -61,7 +64,7 @@ def test_formatting():
 def verify_updating():
     test_path = run_tests.find_project_root() + "/tests/toml_files/default.toml"
 
-    run_tests.update_ratchets(test_path, True, True, None)
+    run_tests.update_ratchets(test_path, True, True, None, run_tests.find_project_root() + "/tests/test_files/temp_ratchet2.json")
 
     # if one is false then the results are guaranteed
     # to be either the same or lower.
@@ -98,7 +101,7 @@ def test_ratchet_excluded_missing():
     issues = run_tests.evaluate_tests(test_path, True, True, None)
 
     # writes back json file
-    run_tests.update_ratchets(test_path, True, True, None)
+    run_tests.update_ratchets(test_path, True, True, None, run_tests.find_project_root() + "/tests/test_files/temp_ratchet3.json")
 
     return
 

@@ -28,7 +28,8 @@ def test_exclusion():
     test_py_dir = os.path.abspath(
         os.path.join(current_file_directory, "..", "python_files")
     )
-    exclusion_path = run_tests.get_excludes_path()
+    exclusion_path = run_tests.find_project_root() + "/tests/exclusion_files/ratchet_excluded.txt"
+
     root = run_tests.find_project_root()
     ignore_path = os.path.join(root, ".gitignore")
 
